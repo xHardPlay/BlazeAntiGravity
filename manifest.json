@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "AgencySMM For Blaze",
+  "version": "1.0",
+  "description": "a AgencySMM.com demo product",
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "scripting",
+    "storage",
+    "tabs",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.blaze.ai/*",
+    "https://*.cloudinary.com/*"
+  ],
+  "action": {
+    "default_title": "AgencySMM For Blaze"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
