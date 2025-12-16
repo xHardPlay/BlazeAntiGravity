@@ -77,6 +77,7 @@ export class PopupRenderer {
       onExtractVideo: (eventIndex) => this.onExtractVideo?.(eventIndex),
       onDownloadSingleCSV: (eventData) => this.onDownloadSingleCSV?.(eventData),
       onDownloadSingle: (url) => this.onDownloadSingle?.(url),
+      onToggleEvents: () => this.toggleEventsList(),
       events: this.events
     };
   }
@@ -198,26 +199,6 @@ export class PopupRenderer {
 
     this.container.innerHTML = html;
     this.eventBinder.bindEventHandlers();
-
-    // Add collapsible functionality globally
-    if (typeof window !== 'undefined') {
-      window.toggleEventsList = () => {
-        const header = document.querySelector('.events-count');
-        const cardsContainer = document.getElementById('events-cards-container');
-
-        if (header && cardsContainer) {
-          const isCollapsed = header.classList.contains('collapsed');
-
-          if (isCollapsed) {
-            header.classList.remove('collapsed');
-            cardsContainer.classList.remove('collapsed');
-          } else {
-            header.classList.add('collapsed');
-            cardsContainer.classList.add('collapsed');
-          }
-        }
-      };
-    }
   }
 
   /**
@@ -253,7 +234,8 @@ export class PopupRenderer {
     const platformsHtml = platformsArray.length > 0
       ? platformsArray.map(platform => {
           const icon = this.getPlatformIcon(platform);
-          return `<span class="platform-tag">${icon} ${platform}</span>`;
+          const platformClass = this.getPlatformClass(platform);
+          return `<span class="platform-tag ${platformClass}">${icon} ${platform}</span>`;
         }).join('')
       : '';
 
@@ -563,5 +545,20 @@ export class PopupRenderer {
   getPlatformIcon(platform) {
     // Return empty string for minimalist design - no icons, just text
     return '';
+  }
+
+  /**
+   * Returns the appropriate CSS class for each platform for color coding
+   */
+  getPlatformClass(platform) {
+    const platformLower = platform.toLowerCase();
+
+    if (platformLower.includes('instagram')) return 'platform-instagram';
+    if (platformLower.includes('facebook') || platformLower.includes('linkedin')) return 'platform-blue';
+    if (platformLower.includes('email')) return 'platform-gray';
+    if (platformLower.includes('blog')) return 'platform-yellow';
+
+    // Default fallback
+    return 'platform-default';
   }
 }

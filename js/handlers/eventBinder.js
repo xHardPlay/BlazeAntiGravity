@@ -31,6 +31,9 @@ export class EventBinder {
 
     // Action buttons
     this.bindActionButtons();
+
+    // Events collapsible header
+    this.bindEventsCollapsible();
   }
 
   /**
@@ -114,10 +117,27 @@ export class EventBinder {
   }
 
   /**
+   * Binds the events collapsible header toggle
+   */
+  bindEventsCollapsible() {
+    const header = this.container.querySelector('.events-count');
+    if (header) {
+      header.addEventListener('click', () => {
+        // Call the renderer's toggle method
+        if (this.callbacks.onToggleEvents) {
+          this.callbacks.onToggleEvents();
+        }
+      });
+    }
+  }
+
+  /**
    * Updates event binding after DOM changes
    */
   refreshBindings() {
     // Re-bind event cards if they were re-rendered
     this.bindEventCards();
+    // Re-bind collapsible header
+    this.bindEventsCollapsible();
   }
 }

@@ -763,17 +763,48 @@ export class StyleManager {
 
       .platform-tag {
         font-size: 10px;
-        color: ${colors.accent};
-        background: ${colors.accent}15;
         padding: 3px 8px;
         border-radius: 12px;
         white-space: nowrap;
-        border: 1px solid ${colors.accent}30;
+        border: 1px solid transparent;
         font-weight: 600;
         display: inline-block;
         font-family: 'Inter', system-ui, sans-serif;
         text-transform: capitalize;
         letter-spacing: 0.2px;
+        margin-right: 4px;
+        margin-bottom: 4px;
+      }
+
+      /* Color-coded platform tags */
+      .platform-instagram {
+        color: #e91e63;
+        background: rgba(233, 30, 99, 0.15);
+        border-color: rgba(233, 30, 99, 0.3);
+      }
+
+      .platform-blue {
+        color: #2196f3;
+        background: rgba(33, 150, 243, 0.15);
+        border-color: rgba(33, 150, 243, 0.3);
+      }
+
+      .platform-gray {
+        color: #757575;
+        background: rgba(117, 117, 117, 0.15);
+        border-color: rgba(117, 117, 117, 0.3);
+      }
+
+      .platform-yellow {
+        color: #ff9800;
+        background: rgba(255, 152, 0, 0.15);
+        border-color: rgba(255, 152, 0, 0.3);
+      }
+
+      .platform-default {
+        color: ${colors.accent};
+        background: ${colors.accent}15;
+        border-color: ${colors.accent}30;
       }
 
       .event-card-meta {

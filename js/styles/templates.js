@@ -169,7 +169,7 @@ export const NO_RESULTS = `
 // Events templates
 export const EVENTS_GRID = (count, cards) => `
   <div class="events-grid">
-    <div class="events-count collapsible-header" onclick="toggleEventsList()">
+    <div class="events-count collapsible-header">
       <span class="events-count-icon">📅</span>
       <span class="events-count-text">Found ${count} events</span>
       <span class="collapse-icon">⬇️</span>
