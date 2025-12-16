@@ -31,16 +31,30 @@ export class EventHandlers {
                 return;
             }
 
-            // Execute the extraction script
+            // Execute the extraction script with the new workflow
             const results = await chrome.scripting.executeScript({
                 target: { tabId: this.controller.tabId },
                 func: () => {
-                    // Inline data extraction function
-                    const extractEvents = () => {
+                    // New extraction workflow: expand text, extract data, check boxes, then uncheck all
+                    const extractEventsPreview = async () => {
                         const eventContainers = Array.from(document.querySelectorAll('[class*="CalendarEventCard_eventContainer"]'))
                             .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
 
-                        return eventContainers.map((container, index) => {
+                        const events = [];
+
+                        // Step 1-5: Process each event (expand text, extract data, check checkbox)
+                        for (let index = 0; index < eventContainers.length; index++) {
+                            const container = eventContainers[index];
+
+                            // Step 2: Click "more" button to expand full text if exists
+                            const moreButton = container.querySelector('[class*="TruncatedText_moreButton"]');
+                            if (moreButton) {
+                                moreButton.click();
+                                // Wait for text to expand
+                                await new Promise(resolve => setTimeout(resolve, 300));
+                            }
+
+                            // Step 3: Save all important data (titles, texts, dates, etc.)
                             // Extract label
                             const channelContainer = container.querySelector('[class*="CalendarEventCard_channelContainer"]');
                             const labelSpan = channelContainer?.querySelector('span[class*="Text_root_"]') ||
@@ -48,7 +62,7 @@ export class EventHandlers {
                             const label = labelSpan?.textContent?.trim() || 'No Label';
 
                             // Extract platforms
-                            const platformIcons = container.querySelectorAll('.Icon_platformIcon__d7da4');
+                            const platformIcons = container.querySelectorAll('[class*="Icon_platformIcon"]');
                             const platforms = Array.from(platformIcons).map(icon => {
                                 const classes = icon.className;
                                 if (classes.includes('facebookIcon')) return 'Facebook';
@@ -64,13 +78,13 @@ export class EventHandlers {
                             const timeSpans = eventHeader?.querySelectorAll('span[class*="Text_root_"]');
                             const timestamp = timeSpans && timeSpans.length > 1 ? timeSpans[1]?.textContent?.trim() : '';
 
-                            // Extract description
+                            // Extract full description (after expanding)
                             const descDiv = container.querySelector('[class*="TruncatedText_caption"]');
                             const description = descDiv?.textContent?.trim() || '';
 
                             // Extract image
                             const img = container.querySelector('img');
-                            const imageSrc = (img && !img.src.startsWith('data:') && img.offsetWidth > 50) ? img.src : null;
+                            const imageSrc = (img && !img.src.startsWith('data:') && img.offsetWidth > 0) ? img.src : null;
 
                             // Extract video info
                             const hasPlayOverlay = !!container.querySelector('.CalendarEventCard_playButtonOverlay__335fa');
@@ -92,7 +106,16 @@ export class EventHandlers {
                             const cardIndex = index + 1;
                             const isNew = cardClasses.includes('CalendarEventCard_new__335fa');
 
-                            return {
+                            // Step 4: Check the checkbox for this event
+                            const checkbox = container.querySelector('input[type="checkbox"]');
+                            const labelElement = container.querySelector('label');
+                            if (checkbox && !checkbox.checked && labelElement) {
+                                labelElement.click();
+                                // Small delay after checking
+                                await new Promise(resolve => setTimeout(resolve, 150));
+                            }
+
+                            events.push({
                                 label,
                                 platforms,
                                 timestamp,
@@ -104,11 +127,26 @@ export class EventHandlers {
                                 cardIndex,
                                 eventUrl,
                                 cardClasses
-                            };
-                        });
+                            });
+                        }
+
+                        // Step 6: After processing all events, uncheck all checkboxes
+                        const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                        for (const checkbox of allCheckboxes) {
+                            if (checkbox.checked) {
+                                const label = checkbox.closest('label') || document.querySelector(`label[for="${checkbox.id}"]`);
+                                if (label) {
+                                    label.click();
+                                    await new Promise(resolve => setTimeout(resolve, 100));
+                                }
+                            }
+                        }
+
+                        return events;
                     };
 
-                    return { events: extractEvents() };
+                    // Execute the workflow and return results
+                    return extractEventsPreview().then(events => ({ events }));
                 },
                 world: 'MAIN'
             });
@@ -169,52 +207,150 @@ export class EventHandlers {
 
                         // Wait a bit for scroll to complete
                         setTimeout(() => {
-                            // Try multiple click strategies
-                            let clicked = false;
+                            // Try ALL interaction strategies sequentially - one of them will work!
+                            const strategies = [];
 
-                            // First, try to find and click a link
+                            // Strategy 1: Click the play button overlay directly
+                            const playButton = targetContainer.querySelector('.CalendarEventCard_playButtonOverlay__335fa');
+                            if (playButton) {
+                                strategies.push(() => playButton.click());
+                            }
+
+                            // Strategy 2: Click the image container
+                            const imageContainer = targetContainer.querySelector('.CalendarEventCard_eventImage__335fa');
+                            if (imageContainer) {
+                                strategies.push(() => imageContainer.click());
+                            }
+
+                            // Strategy 3: Click the actual img element
+                            const imgElement = targetContainer.querySelector('img');
+                            if (imgElement) {
+                                strategies.push(() => imgElement.click());
+                            }
+
+                            // Strategy 4: React internal handlers on the play button
+                            if (playButton && playButton._reactInternalInstance) {
+                                strategies.push(() => {
+                                    try {
+                                        const internalInstance = playButton._reactInternalInstance;
+                                        if (internalInstance && internalInstance.pendingProps && internalInstance.pendingProps.onClick) {
+                                            internalInstance.pendingProps.onClick();
+                                            return true;
+                                        }
+                                    } catch (e) {
+                                        // React internal access failed
+                                    }
+                                    return false;
+                                });
+                            }
+
+                            // Strategy 5: React internal handlers on the image container
+                            if (imageContainer && imageContainer._reactInternalInstance) {
+                                strategies.push(() => {
+                                    try {
+                                        const internalInstance = imageContainer._reactInternalInstance;
+                                        if (internalInstance && internalInstance.pendingProps && internalInstance.pendingProps.onClick) {
+                                            internalInstance.pendingProps.onClick();
+                                            return true;
+                                        }
+                                    } catch (e) {
+                                        // React internal access failed
+                                    }
+                                    return false;
+                                });
+                            }
+
+                            // Strategy 6: Click checkbox label (React aria pattern) - TEMPORARILY DISABLED
+                            // const label = targetContainer.querySelector('label');
+                            // if (label) {
+                            //     strategies.push(() => label.click());
+                            // }
+
+                            // Strategy 7: Call onclick handlers directly
                             const linkEl = targetContainer.closest('a') || targetContainer.querySelector('a');
-                            if (linkEl) {
-                                linkEl.click();
-                                clicked = true;
+                            if (linkEl && linkEl.onclick) {
+                                strategies.push(() => linkEl.onclick());
+                            } else if (targetContainer.onclick) {
+                                strategies.push(() => targetContainer.onclick());
                             }
 
-                            // If no link found, try clicking the container directly
-                            if (!clicked) {
-                                targetContainer.click();
-                                clicked = true;
+                            // Strategy 8: Programmatic navigation
+                            if (linkEl?.href) {
+                                strategies.push(() => {
+                                    window.location.href = linkEl.href;
+                                    return true;
+                                });
                             }
 
-                            // As a fallback, try dispatching a click event with more options
-                            if (!clicked) {
-                                const clickEvent = new MouseEvent('click', {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    view: window,
+                            // Strategy 9: Mouse event sequence (mousedown -> mouseup -> click)
+                            strategies.push(() => {
+                                const mouseDownEvent = new MouseEvent('mousedown', {
+                                    bubbles: true, cancelable: true, view: window,
                                     clientX: targetContainer.getBoundingClientRect().left + targetContainer.offsetWidth / 2,
-                                    clientY: targetContainer.getBoundingClientRect().top + targetContainer.offsetHeight / 2
+                                    clientY: targetContainer.getBoundingClientRect().top + targetContainer.offsetHeight / 2,
+                                    button: 0, buttons: 1
                                 });
+                                const mouseUpEvent = new MouseEvent('mouseup', {
+                                    bubbles: true, cancelable: true, view: window,
+                                    clientX: targetContainer.getBoundingClientRect().left + targetContainer.offsetWidth / 2,
+                                    clientY: targetContainer.getBoundingClientRect().top + targetContainer.offsetHeight / 2,
+                                    button: 0, buttons: 1
+                                });
+                                const clickEvent = new MouseEvent('click', {
+                                    bubbles: true, cancelable: true, view: window,
+                                    clientX: targetContainer.getBoundingClientRect().left + targetContainer.offsetWidth / 2,
+                                    clientY: targetContainer.getBoundingClientRect().top + targetContainer.offsetHeight / 2,
+                                    button: 0, buttons: 1
+                                });
+                                targetContainer.dispatchEvent(mouseDownEvent);
+                                targetContainer.dispatchEvent(mouseUpEvent);
                                 targetContainer.dispatchEvent(clickEvent);
-                                clicked = true;
-                            }
+                                return true;
+                            });
 
-                            // Additional fallback: try mousedown + mouseup events
-                            if (!clicked) {
-                                const mousedownEvent = new MouseEvent('mousedown', {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    view: window
-                                });
-                                const mouseupEvent = new MouseEvent('mouseup', {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    view: window
-                                });
-                                targetContainer.dispatchEvent(mousedownEvent);
-                                targetContainer.dispatchEvent(mouseupEvent);
-                                clicked = true;
-                            }
-                        }, 300);
+                            // Strategy 10: Keyboard Enter
+                            strategies.push(() => {
+                                targetContainer.focus();
+                                targetContainer.dispatchEvent(new KeyboardEvent('keydown', {
+                                    key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true, cancelable: true
+                                }));
+                                return true;
+                            });
+
+                            // Strategy 11: Double click
+                            strategies.push(() => {
+                                targetContainer.dispatchEvent(new MouseEvent('dblclick', {
+                                    bubbles: true, cancelable: true, view: window
+                                }));
+                                return true;
+                            });
+
+                            // Strategy 12: Space key
+                            strategies.push(() => {
+                                targetContainer.dispatchEvent(new KeyboardEvent('keydown', {
+                                    key: ' ', code: 'Space', keyCode: 32, bubbles: true, cancelable: true
+                                }));
+                                return true;
+                            });
+
+                            // Strategy 13: Basic click as final fallback
+                            strategies.push(() => {
+                                targetContainer.click();
+                                return true;
+                            });
+
+                            // Execute all strategies with small delays between them
+                            strategies.forEach((strategy, index) => {
+                                setTimeout(() => {
+                                    try {
+                                        strategy();
+                                    } catch (error) {
+                                        console.warn(`Strategy ${index + 1} failed:`, error);
+                                    }
+                                }, index * 100); // 100ms delay between each strategy
+                            });
+
+                        }, 300); // Initial delay for scroll
 
                         return { success: true };
                     }

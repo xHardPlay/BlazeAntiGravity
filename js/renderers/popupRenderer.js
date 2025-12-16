@@ -179,7 +179,7 @@ export class PopupRenderer {
   renderEventCard(event, index) {
     const descTruncated = event.description || 'No description available';
     const label = event.label || 'Unknown Type';
-    const platforms = event.platforms ? `<div style="font-size: 10px; color: #aaa; margin-bottom: 2px;">${event.platforms}</div>` : '';
+    const platforms = event.platforms;
 
     // Determine icon based on label/type if possible
     let typeIcon = '📄';
@@ -189,7 +189,7 @@ export class PopupRenderer {
     if (label.includes('Email')) typeIcon = '📧';
 
     const imageHtml = event.imageSrc ? EVENT_IMAGE(event.imageSrc) : EVENT_NO_IMAGE(typeIcon);
-    return EVENT_CARD(index, imageHtml, label, platforms, descTruncated, event.videoDuration);
+    return EVENT_CARD(index, imageHtml, label, platforms, descTruncated, event.videoDuration, event.timestamp, event.hasVideo, event.eventUrl);
   }
 
   /**

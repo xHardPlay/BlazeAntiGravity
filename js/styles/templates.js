@@ -92,22 +92,24 @@ export const RESULTS_TITLE = `
 `;
 
 export const HEADER_BUTTONS = `
-  <button id="capture-btn" class="refresh-button">
-    <span class="refresh-icon">🔄</span>
-    <span class="refresh-text">Rescan</span>
-  </button>
-  <button id="debug-dump-btn" class="action-button secondary" style="margin-top: 10px; background: #6c757d;">
-    <span class="action-icon">🐞</span>
-    Download Site Debug Info
-  </button>
-  <button id="autopilot-btn" class="autopilot-button">
-    <span class="refresh-icon">✈️</span>
-    <span class="refresh-text">Auto Pilot</span>
-  </button>
-  <button id="inspector-btn" class="inspector-button" style="background: linear-gradient(135deg, #f39c12 0%, #d35400 100%); margin-left: 8px;">
-    <span class="refresh-icon">🔍</span>
-    <span class="refresh-text">Inspector</span>
-  </button>
+  <div class="top-button-bar">
+    <button id="capture-btn" class="top-button">
+      <span class="button-icon">🔄</span>
+      <span class="button-text">Rescan</span>
+    </button>
+    <button id="autopilot-btn" class="top-button">
+      <span class="button-icon">✈️</span>
+      <span class="button-text">Auto Pilot</span>
+    </button>
+    <button id="inspector-btn" class="top-button">
+      <span class="button-icon">🔍</span>
+      <span class="button-text">Inspector</span>
+    </button>
+    <button id="debug-dump-btn" class="top-button debug-btn">
+      <span class="button-icon">🐞</span>
+      <span class="button-text">Debug</span>
+    </button>
+  </div>
 `;
 
 export const INSPECTOR_RESULTS = `
@@ -152,14 +154,23 @@ export const EVENTS_GRID = (count, cards) => `
   </div>
 `;
 
-export const EVENT_CARD = (index, imageHtml, label, platforms, desc, duration) => `
+export const EVENT_CARD = (index, imageHtml, label, platforms, desc, duration, timestamp, hasVideo, eventUrl) => `
   <div class="event-card" data-index="${index}">
     ${imageHtml}
     <div class="event-card-content">
-      <div class="event-card-label">${label}</div>
-      ${platforms}
+      <div class="event-card-header">
+        <div class="event-card-label">${label}</div>
+        ${platforms ? `<div class="event-card-platforms">${platforms}</div>` : ''}
+      </div>
+      <div class="event-card-meta">
+        ${timestamp ? `<div class="event-card-timestamp">📅 ${timestamp}</div>` : ''}
+        <div class="event-card-indicators">
+          ${hasVideo ? '<span class="indicator video">🎥 Video</span>' : ''}
+          ${eventUrl ? '<span class="indicator link">🔗 Has Link</span>' : ''}
+        </div>
+      </div>
       <div class="event-card-desc">${desc}</div>
-      ${duration ? `<div style="font-size: 10px; color: #4ecdc4; margin-top: 4px;">⏱️ ${duration}</div>` : ''}
+      ${duration ? `<div class="event-card-duration">⏱️ ${duration}</div>` : ''}
     </div>
   </div>
 `;

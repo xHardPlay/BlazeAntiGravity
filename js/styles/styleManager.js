@@ -351,6 +351,60 @@ export class StyleManager {
         font-size: 12px;
         opacity: 0.8;
       }
+
+      /* Top Button Bar Styles */
+      .top-button-bar {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .top-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        cursor: pointer;
+        color: white;
+        display: flex;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        min-width: 80px;
+        justify-content: center;
+      }
+
+      .top-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+      }
+
+      .top-button.debug-btn {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        font-size: 12px;
+        padding: 8px 12px;
+        min-width: 70px;
+      }
+
+      .top-button.debug-btn:hover {
+        background: linear-gradient(135deg, #5a6268 0%, #383d41 100%);
+      }
+
+      .button-icon {
+        margin-right: 6px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+      }
+
+      .button-text {
+        white-space: nowrap;
+      }
     `);
   }
 
@@ -546,6 +600,65 @@ export class StyleManager {
         background: rgba(255,255,255,0.12);
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+
+      .event-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 6px;
+      }
+
+      .event-card-platforms {
+        font-size: 10px;
+        color: #aaa;
+        background: rgba(255,255,255,0.1);
+        padding: 2px 6px;
+        border-radius: 10px;
+        white-space: nowrap;
+      }
+
+      .event-card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 11px;
+      }
+
+      .event-card-timestamp {
+        color: #4ecdc4;
+        font-weight: 500;
+      }
+
+      .event-card-indicators {
+        display: flex;
+        gap: 4px;
+      }
+
+      .indicator {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .indicator.video {
+        background: rgba(255,193,7,0.2);
+        color: #ffc107;
+      }
+
+      .indicator.link {
+        background: rgba(0,123,255,0.2);
+        color: #007bff;
+      }
+
+      .event-card-duration {
+        font-size: 10px;
+        color: #4ecdc4;
+        margin-top: 4px;
+        font-weight: 500;
       }
 
       .event-card-image {
