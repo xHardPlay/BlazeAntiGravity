@@ -205,7 +205,14 @@ export class EventHandlers {
                             inline: 'center'
                         });
 
-                        // Wait a bit for scroll to complete
+                        // First, check the checkbox for this event on the web page
+                        const checkbox = targetContainer.querySelector('input[type="checkbox"]');
+                        const labelElement = targetContainer.querySelector('label');
+                        if (checkbox && !checkbox.checked && labelElement) {
+                            labelElement.click();
+                        }
+
+                        // Wait a bit for scroll and checkbox interaction to complete
                         setTimeout(() => {
                             // Try ALL interaction strategies sequentially - one of them will work!
                             const strategies = [];
@@ -361,14 +368,12 @@ export class EventHandlers {
             });
 
             if (clickResult[0].result.success) {
-                this.controller.renderer.showMessage('Opening event in web...', 'info');
+                this.controller.renderer.showMessage('Event selected in web...', 'info');
             } else {
                 console.warn('Failed to click web element:', clickResult[0].result.error);
-                // Still show detail view even if web click failed
             }
 
-            // Show detail view in popup
-            this.controller.renderer.renderEventDetail(index);
+            // Note: Detail view opening disabled - only checkbox selection and web interaction
 
         } catch (error) {
             console.error('Event click failed:', error);
@@ -740,6 +745,388 @@ export class EventHandlers {
         } catch (error) {
             console.error('Single CSV export failed:', error);
             this.controller.renderer.showMessage('Failed to export CSV: ' + error.message);
+        }
+    }
+
+    /**
+     * Scans the page for video elements and captures their MP4 URLs
+     * Also identifies events that don't have videos loaded yet
+     */
+    async handleScanVideos() {
+        try {
+            await this.controller.updateActiveTab();
+            this.controller.renderer.showMessage('Scanning for videos and checking events...', 'info');
+
+            // Execute script to scan for videos and check event status
+            const results = await chrome.scripting.executeScript({
+                target: { tabId: this.controller.tabId },
+                func: (capturedEvents) => {
+                    // Scan for all video elements and their sources
+                    const videos = Array.from(document.querySelectorAll('video'));
+                    const videoSources = [];
+
+                    videos.forEach((video, index) => {
+                        // Get direct src attribute
+                        if (video.src && video.src.includes('.mp4')) {
+                            videoSources.push({
+                                url: video.src,
+                                type: 'direct',
+                                elementIndex: index,
+                                duration: video.duration || 0,
+                                currentTime: video.currentTime || 0
+                            });
+                        }
+
+                        // Get sources from <source> elements
+                        const sources = video.querySelectorAll('source');
+                        sources.forEach((source, sourceIndex) => {
+                            if (source.src && source.src.includes('.mp4')) {
+                                videoSources.push({
+                                    url: source.src,
+                                    type: 'source',
+                                    elementIndex: index,
+                                    sourceIndex: sourceIndex,
+                                    duration: video.duration || 0,
+                                    currentTime: video.currentTime || 0
+                                });
+                            }
+                        });
+                    });
+
+                    // Check which events have videos loaded (cross-reference with captured events)
+                    const eventContainers = Array.from(document.querySelectorAll('[class*="CalendarEventCard_eventContainer"]'))
+                        .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
+
+                    const eventsWithVideos = [];
+                    const eventsWithoutVideos = [];
+
+                    eventContainers.forEach((container, index) => {
+                        const hasVideoElement = !!container.querySelector('video');
+                        const label = container.querySelector('span[class*="Text_root_"]')?.textContent?.trim() || `Event ${index + 1}`;
+
+                        // Check if this event was marked as having video in our captured data
+                        const matchingEvent = capturedEvents.find(event => event.cardIndex === index + 1);
+                        const hasVideoDetected = matchingEvent && (matchingEvent.hasVideo || matchingEvent.videoSrc === 'VIDEO DETECTADO');
+
+                        const hasVideo = hasVideoElement || hasVideoDetected;
+
+                        if (hasVideo) {
+                            eventsWithVideos.push({
+                                index: index + 1,
+                                label: label,
+                                hasVideo: true,
+                                source: hasVideoElement ? 'loaded' : 'detected'
+                            });
+                            // Restore original content if it was hidden before
+                            if (container.dataset.wasHidden === 'true') {
+                                delete container.dataset.wasHidden;
+                                // Note: We can't restore original content, but at least we mark it as visible
+                            }
+                        } else {
+                            eventsWithoutVideos.push({
+                                index: index + 1,
+                                label: label,
+                                hasVideo: false
+                            });
+                            // Force replace HTML content with empty div
+                            if (!container.dataset.wasHidden) {
+                                container.dataset.wasHidden = 'true';
+                                container.dataset.originalContent = container.innerHTML;
+                                container.innerHTML = '<div style="display: none;"></div>';
+                            }
+                        }
+                    });
+
+                    return {
+                        videoSources,
+                        eventsWithVideos,
+                        eventsWithoutVideos
+                    };
+                },
+                args: [this.controller.events || []],
+                world: 'MAIN'
+            });
+
+            const { videoSources, eventsWithVideos, eventsWithoutVideos } = results[0].result;
+
+            // Add found videos to captured videos list
+            if (!this.controller.capturedVideos) {
+                this.controller.capturedVideos = [];
+            }
+
+            // Filter out duplicates
+            const newVideos = videoSources.filter(video =>
+                !this.controller.capturedVideos.some(existing =>
+                    existing.url === video.url
+                )
+            );
+
+            this.controller.capturedVideos.push(...newVideos);
+
+            // Update UI to show captured videos and missing videos
+            this.updateCapturedVideosUI();
+            this.updateMissingVideosUI(eventsWithoutVideos);
+
+            const message = `Found ${newVideos.length} new videos. ${eventsWithoutVideos.length} events need manual opening.`;
+            this.controller.renderer.showMessage(message, eventsWithoutVideos.length > 0 ? 'info' : 'success');
+
+        } catch (error) {
+            console.error('Video scan failed:', error);
+            this.controller.renderer.showMessage('Video scan failed: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Updates the UI to display captured videos
+     */
+    updateCapturedVideosUI() {
+        // Create or update the videos container
+        let videosContainer = document.getElementById('captured-videos-container');
+        if (!videosContainer) {
+            videosContainer = document.createElement('div');
+            videosContainer.id = 'captured-videos-container';
+            videosContainer.style.cssText = `
+                margin-bottom: 20px;
+                background: rgba(0,0,0,0.1);
+                border-radius: 8px;
+                padding: 16px;
+            `;
+
+            const header = document.createElement('div');
+            header.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                font-weight: bold;
+                color: #fff;
+            `;
+            header.innerHTML = `
+                <span>Captured Videos (<span id="videos-count">0</span>)</span>
+                <button id="download-videos-btn" style="background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%); border: none; padding: 6px 12px; font-size: 11px; color: white; cursor: pointer; border-radius: 4px;">Download All</button>
+            `;
+
+            const videosList = document.createElement('div');
+            videosList.id = 'videos-list';
+            videosList.style.cssText = `
+                max-height: 200px;
+                overflow-y: auto;
+                background: rgba(0,0,0,0.1);
+                border-radius: 8px;
+                padding: 8px;
+            `;
+
+            videosContainer.appendChild(header);
+            videosContainer.appendChild(videosList);
+
+            // Insert after captured items container or at the end
+            const capturedItems = document.getElementById('captured-items-container');
+            const resultsContent = document.querySelector('.results-content');
+            if (capturedItems && capturedItems.nextSibling) {
+                resultsContent.insertBefore(videosContainer, capturedItems.nextSibling);
+            } else if (resultsContent) {
+                resultsContent.appendChild(videosContainer);
+            }
+        }
+
+        // Update the videos list
+        const videosList = document.getElementById('videos-list');
+        const videosCount = document.getElementById('videos-count');
+
+        if (videosCount) {
+            videosCount.textContent = this.controller.capturedVideos.length;
+        }
+
+        if (videosList && this.controller.capturedVideos.length === 0) {
+            videosList.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 11px; padding: 10px;">No videos captured yet</div>';
+        } else if (videosList) {
+            videosList.innerHTML = this.controller.capturedVideos.map((video, index) => `
+                <div style="background: rgba(255,255,255,0.05); border-radius: 4px; padding: 8px; margin-bottom: 6px; font-size: 11px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="font-weight: bold; color: #4ecdc4;">🎥 Video #${index + 1}</span>
+                        <span style="color: #666; font-size: 10px;">${video.type}</span>
+                    </div>
+                    <div style="color: #ccc; word-break: break-all; margin-bottom: 4px; font-family: monospace;">${video.url}</div>
+                    ${video.duration ? `<div style="color: #888; font-size: 10px;">Duration: ${Math.round(video.duration)}s</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Bind download button
+        const downloadBtn = document.getElementById('download-videos-btn');
+        if (downloadBtn) {
+            downloadBtn.onclick = () => this.handleDownloadCapturedVideos();
+        }
+    }
+
+    /**
+     * Updates the UI to display events that don't have videos loaded
+     */
+    updateMissingVideosUI(eventsWithoutVideos) {
+        // Create or update the missing videos container
+        let missingVideosContainer = document.getElementById('missing-videos-container');
+        if (!missingVideosContainer) {
+            missingVideosContainer = document.createElement('div');
+            missingVideosContainer.id = 'missing-videos-container';
+            missingVideosContainer.style.cssText = `
+                margin-bottom: 20px;
+                background: rgba(255,59,48,0.1);
+                border: 1px solid rgba(255,59,48,0.3);
+                border-radius: 8px;
+                padding: 16px;
+            `;
+
+            const header = document.createElement('div');
+            header.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                font-weight: bold;
+                color: #fff;
+            `;
+            header.innerHTML = `
+                <span>⚠️ Events Without Videos (<span id="missing-count">0</span>)</span>
+                <div style="font-size: 11px; color: #ff9f43;">Click to open manually</div>
+            `;
+
+            const missingList = document.createElement('div');
+            missingList.id = 'missing-videos-list';
+            missingList.style.cssText = `
+                max-height: 150px;
+                overflow-y: auto;
+                background: rgba(0,0,0,0.1);
+                border-radius: 8px;
+                padding: 8px;
+            `;
+
+            missingVideosContainer.appendChild(header);
+            missingVideosContainer.appendChild(missingList);
+
+            // Insert after captured videos container
+            const capturedVideos = document.getElementById('captured-videos-container');
+            const resultsContent = document.querySelector('.results-content');
+            if (capturedVideos && capturedVideos.nextSibling) {
+                resultsContent.insertBefore(missingVideosContainer, capturedVideos.nextSibling);
+            } else if (resultsContent) {
+                resultsContent.appendChild(missingVideosContainer);
+            }
+        }
+
+        // Update the missing videos list
+        const missingList = document.getElementById('missing-videos-list');
+        const missingCount = document.getElementById('missing-count');
+
+        if (missingCount) {
+            missingCount.textContent = eventsWithoutVideos.length;
+        }
+
+        if (missingList) {
+            if (eventsWithoutVideos.length === 0) {
+                missingList.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 11px; padding: 10px;">All events have videos loaded! 🎉</div>';
+                // Hide the container if no missing videos
+                missingVideosContainer.style.display = 'none';
+            } else {
+                missingVideosContainer.style.display = 'block';
+                missingList.innerHTML = eventsWithoutVideos.map((event, index) => `
+                    <div style="background: rgba(255,59,48,0.1); border: 1px solid rgba(255,59,48,0.2); border-radius: 4px; padding: 8px; margin-bottom: 6px; font-size: 11px; cursor: pointer;" onclick="this.style.background='rgba(255,59,48,0.2)'; setTimeout(() => this.style.background='rgba(255,59,48,0.1)', 200)">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-weight: bold; color: #ff6b6b;">📂 Event #${event.index}</span>
+                            <span style="color: #666; font-size: 10px;">No video loaded</span>
+                        </div>
+                        <div style="color: #ccc; word-break: break-all;">${event.label}</div>
+                    </div>
+                `).join('');
+            }
+        }
+    }
+
+    /**
+     * Downloads all captured videos AND all media files (complete package)
+     */
+    async handleDownloadCapturedVideos() {
+        const capturedVideos = this.controller.capturedVideos || [];
+        const mediaItems = this.controller.events
+            .map((event, index) => ({
+                url: event.imageSrc || event.videoSrc,
+                filename: this.generateMediaFilename(event, index),
+                type: event.imageSrc ? 'image' : 'video',
+                label: event.label || 'Unknown',
+                description: event.description || '',
+                platforms: event.platforms || '',
+                timestamp: event.timestamp || ''
+            }))
+            .filter(item => item.url && item.url !== 'VIDEO DETECTADO');
+
+        const totalVideos = capturedVideos.length + mediaItems.filter(item => item.type === 'video').length;
+        const totalImages = mediaItems.filter(item => item.type === 'image').length;
+        const totalFiles = capturedVideos.length + mediaItems.length;
+
+        if (totalFiles === 0) {
+            this.controller.renderer.showMessage('No videos or media to download', 'info');
+            return;
+        }
+
+        this.controller.renderer.showMessage(`Downloading complete package: ${capturedVideos.length} captured videos + ${mediaItems.length} media files...`, 'info');
+
+        try {
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+
+            // Generate HTML index file content (same as handleDownloadMedia)
+            const htmlContent = this.generateHtmlIndex(mediaItems, timestamp);
+            const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+            const htmlDataUrl = await this.blobToDataURL(htmlBlob);
+
+            // Generate CSV data
+            const csvContent = this.generateCSVData(this.controller.events);
+            const csvBlob = new Blob([csvContent], { type: 'text/csv' });
+            const csvDataUrl = await this.blobToDataURL(csvBlob);
+
+            let downloadIndex = 0;
+
+            // Download HTML index first
+            chrome.downloads.download({
+                url: htmlDataUrl,
+                filename: `BlazeMedia/index_${timestamp}.html`
+            });
+
+            // Download CSV data
+            setTimeout(() => {
+                chrome.downloads.download({
+                    url: csvDataUrl,
+                    filename: `BlazeMedia/data_${timestamp}.csv`
+                });
+            }, 500);
+
+            // Download all captured videos
+            capturedVideos.forEach((video, index) => {
+                setTimeout(() => {
+                    const filename = `BlazeMedia/captured_video_${index + 1}_${Date.now()}.mp4`;
+                    chrome.downloads.download({
+                        url: video.url,
+                        filename: filename,
+                        saveAs: false
+                    });
+                }, (downloadIndex + 2) * 500);
+                downloadIndex++;
+            });
+
+            // Download all media files (images and videos from events)
+            mediaItems.forEach((item) => {
+                setTimeout(() => {
+                    chrome.downloads.download({
+                        url: item.url,
+                        filename: item.filename
+                    });
+                }, (downloadIndex + 2) * 500);
+                downloadIndex++;
+            });
+
+            this.controller.renderer.showMessage(`Complete package downloaded: HTML gallery, CSV data, ${capturedVideos.length} captured videos, and ${mediaItems.length} media files!`, 'success');
+
+        } catch (error) {
+            console.error('Complete download failed:', error);
+            this.controller.renderer.showMessage('Download failed: ' + error.message, 'error');
         }
     }
 

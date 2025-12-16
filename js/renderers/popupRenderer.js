@@ -45,6 +45,7 @@ export class PopupRenderer {
       onDownloadAllCSV: () => this.onDownloadAllCSV?.(),
       onExtractAllVideos: () => this.onExtractAllVideos?.(),
       onExtractAllDetails: () => this.onExtractAllDetails?.(),
+      onScanVideos: () => this.onScanVideos?.(),
       onBack: () => this.onBack?.(),
       onTestOpenCard: (eventData) => this.onTestOpenCard?.(eventData),
       onExtractVideo: (eventIndex) => this.onExtractVideo?.(eventIndex),

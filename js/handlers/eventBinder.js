@@ -23,6 +23,7 @@ export class EventBinder {
     this.bindButton('capture-btn', () => this.callbacks.onCapture?.());
     this.bindButton('debug-dump-btn', () => this.callbacks.onDebugDump?.());
     this.bindButton('inspector-btn', () => this.callbacks.onToggleInspector?.());
+    this.bindButton('scan-videos-btn', () => this.callbacks.onScanVideos?.());
     this.bindButton('clear-captured-btn', () => this.callbacks.onClearCaptured?.());
 
     // Event cards

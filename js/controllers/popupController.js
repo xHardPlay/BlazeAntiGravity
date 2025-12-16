@@ -19,6 +19,7 @@ export class PopupController {
     this.tabId = null; // Will be set dynamically
     this.renderer = new PopupRenderer(this.container, this.tabId);
     this.events = [];
+    this.capturedVideos = [];
     this.isLiveScanning = false;
     this.isHoverInspectorActive = false;
     this.capturedItems = [];
@@ -58,6 +59,7 @@ export class PopupController {
     this.renderer.onDownloadAllCSV = () => this.eventHandlers.handleDownloadAllCSV();
     this.renderer.onExtractAllVideos = () => this.videoService.handleExtractAllVideos();
     this.renderer.onExtractAllDetails = () => this.autoPilotService.handleExtractAllDetails();
+    this.renderer.onScanVideos = () => this.eventHandlers.handleScanVideos();
     this.renderer.onDownloadSingle = (url) => this.eventHandlers.handleDownloadSingle(url);
     this.renderer.onTestOpenCard = (eventData) => this.eventHandlers.handleTestOpenCard(eventData);
     this.renderer.onExtractVideo = (eventIndex) => this.videoService.handleExtractVideo(eventIndex);

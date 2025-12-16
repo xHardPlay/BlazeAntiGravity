@@ -109,6 +109,10 @@ export const HEADER_BUTTONS = `
       <span class="button-icon">🐞</span>
       <span class="button-text">Debug</span>
     </button>
+    <button id="scan-videos-btn" class="top-button">
+      <span class="button-icon">🎬</span>
+      <span class="button-text">Scan Videos</span>
+    </button>
   </div>
 `;
 
