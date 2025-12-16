@@ -940,16 +940,40 @@ export class EventHandlers {
         if (videosList && this.controller.capturedVideos.length === 0) {
             videosList.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 11px; padding: 10px;">No videos captured yet</div>';
         } else if (videosList) {
-            videosList.innerHTML = this.controller.capturedVideos.map((video, index) => `
+            videosList.innerHTML = this.controller.capturedVideos.map((video, index) => {
+                // Truncate long URLs for display
+                const displayUrl = video.url.length > 80 ? video.url.substring(0, 80) + '...' : video.url;
+                const videoId = `captured-video-${index}`;
+
+                return `
                 <div style="background: rgba(255,255,255,0.05); border-radius: 4px; padding: 8px; margin-bottom: 6px; font-size: 11px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span style="font-weight: bold; color: #4ecdc4;">🎥 Video #${index + 1}</span>
-                        <span style="color: #666; font-size: 10px;">${video.type}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                        <div style="flex: 1;">
+                            <span style="font-weight: bold; color: #4ecdc4;">🎥 Video #${index + 1}</span>
+                            <span style="color: #666; font-size: 10px; margin-left: 8px;">${video.type}</span>
+                        </div>
+                        <video id="${videoId}" style="width: 60px; height: 40px; object-fit: cover; border-radius: 2px; background: #000;" muted loop playsinline>
+                            <source src="${video.url}" type="video/mp4">
+                        </video>
                     </div>
-                    <div style="color: #ccc; word-break: break-all; margin-bottom: 4px; font-family: monospace;">${video.url}</div>
+                    <div style="color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; font-family: monospace; font-size: 10px;" title="${video.url}">${displayUrl}</div>
                     ${video.duration ? `<div style="color: #888; font-size: 10px;">Duration: ${Math.round(video.duration)}s</div>` : ''}
                 </div>
-            `).join('');
+                `;
+            }).join('');
+
+            // Start playing videos when they're loaded
+            this.controller.capturedVideos.forEach((video, index) => {
+                const videoElement = document.getElementById(`captured-video-${index}`);
+                if (videoElement) {
+                    videoElement.addEventListener('loadeddata', () => {
+                        videoElement.play().catch(e => {
+                            // Autoplay might be blocked, that's ok
+                            console.log('Autoplay blocked for video', index);
+                        });
+                    });
+                }
+            });
         }
 
         // Bind download button
