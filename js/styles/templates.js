@@ -116,6 +116,16 @@ export const HEADER_BUTTONS = `
   </div>
 `;
 
+export const LIVE_SCAN_TOGGLE = `
+  <div class="live-scan-toggle">
+    <label class="toggle-label">
+      <input type="checkbox" id="live-scan-checkbox">
+      <span class="toggle-slider"></span>
+      <span class="toggle-text">Live Scan</span>
+    </label>
+  </div>
+`;
+
 export const INSPECTOR_RESULTS = `
   <div id="inspector-results" style="display: none; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px; font-family: monospace; font-size: 12px;">
     <div style="font-weight: bold; margin-bottom: 5px; color: #3498db;">HOVER INSPECTOR ACTIVE</div>

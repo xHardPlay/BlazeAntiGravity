@@ -1090,6 +1090,9 @@ export class EventHandlers {
     async handleDownloadCapturedVideos() {
         const capturedVideos = this.controller.capturedVideos || [];
 
+        // Define timestamp variable
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+
         // Deduplicate captured videos (remove duplicates from server returning 3 copies)
         const uniqueCapturedVideos = [];
         const seenUrls = new Set();

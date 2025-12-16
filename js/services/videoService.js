@@ -216,63 +216,78 @@ export class VideoService {
         style.id = 'video-results-styles';
         style.textContent = `
       .video-results-content {
-        padding: 20px;
+        padding: 24px;
+        color: #ffffff;
       }
 
       .videos-header {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
       }
 
       .back-button {
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 8px;
+        background: #2a2a2a;
+        border: 1px solid #333333;
+        border-radius: 6px;
         padding: 8px 16px;
         cursor: pointer;
-        color: white;
+        color: #ffffff;
         display: flex;
         align-items: center;
-        transition: all 0.3s ease;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.25s ease;
       }
 
       .back-button:hover {
-        background: rgba(255,255,255,0.2);
+        background: #00d4aa;
+        border-color: #00d4aa;
+        color: #0a0a0a;
+        transform: translateY(-1px);
       }
 
       .videos-list {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
       }
 
       .video-item {
-        background: rgba(255,255,255,0.05);
+        background: #1a1a1a;
         border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 8px;
-        border: 1px solid rgba(255,255,255,0.1);
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid #333333;
+        transition: all 0.25s ease;
+      }
+
+      .video-item:hover {
+        border-color: #404040;
+        box-shadow: 0 4px 12px rgba(0, 212, 170, 0.1);
       }
 
       .video-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
       }
 
       .video-number {
         font-weight: 600;
-        color: #4CAF50;
+        color: #00d4aa;
+        font-size: 16px;
       }
 
       .video-type {
         font-size: 12px;
         opacity: 0.8;
-        background: rgba(255,255,255,0.1);
-        padding: 2px 8px;
+        background: #2a2a2a;
+        padding: 4px 8px;
         border-radius: 4px;
+        border: 1px solid #333333;
+        color: #b0b0b0;
       }
 
       .video-preview {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         text-align: center;
       }
 
@@ -280,87 +295,124 @@ export class VideoService {
         width: 120px;
         height: 68px;
         object-fit: cover;
-        border-radius: 4px;
-        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 6px;
+        border: 1px solid #333333;
       }
 
       .video-info {
         flex: 1;
+        margin-bottom: 12px;
       }
 
       .video-url, .video-filename {
-        font-family: monospace;
-        font-size: 12px;
-        margin-bottom: 8px;
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 13px;
+        margin-bottom: 4px;
         word-break: break-all;
-        color: rgba(255,255,255,0.9);
+        color: #ffffff;
+        line-height: 1.4;
       }
 
       .video-actions {
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
       }
 
       .open-video-btn {
-        background: #007bff;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
+        background: #2a2a2a;
+        border: 1px solid #333333;
+        border-radius: 6px;
+        padding: 8px 12px;
         cursor: pointer;
-        color: white;
-        font-size: 12px;
-        transition: background 0.3s ease;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.25s ease;
       }
 
       .open-video-btn:hover {
-        background: #0056b3;
+        background: #00a8ff;
+        border-color: #00a8ff;
+        color: #0a0a0a;
+        transform: translateY(-1px);
       }
 
       .download-video-btn {
-        background: #28a745;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
+        background: #2a2a2a;
+        border: 1px solid #333333;
+        border-radius: 6px;
+        padding: 8px 12px;
         cursor: pointer;
-        color: white;
-        font-size: 12px;
-        transition: background 0.3s ease;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.25s ease;
       }
 
       .download-video-btn:hover {
-        background: #1e7e34;
+        background: #00d4aa;
+        border-color: #00d4aa;
+        color: #0a0a0a;
+        transform: translateY(-1px);
       }
 
       .bulk-actions {
         text-align: center;
+        padding: 24px 0;
       }
 
       .bulk-action-btn {
-        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+        background: #00d4aa;
         border: none;
         border-radius: 8px;
-        padding: 12px 24px;
+        padding: 14px 32px;
         cursor: pointer;
-        color: white;
+        color: #0a0a0a;
         font-weight: 600;
         font-size: 14px;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: all 0.25s ease;
+        box-shadow: 0 2px 8px rgba(0, 212, 170, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .bulk-action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+      }
+
+      .bulk-action-btn:hover::before {
+        left: 100%;
       }
 
       .bulk-action-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        background: #00a8ff;
+        box-shadow: 0 4px 16px rgba(0, 168, 255, 0.4);
+        transform: translateY(-2px);
+      }
+
+      .bulk-action-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 212, 170, 0.3);
       }
 
       .embedded .video-type {
-        background: rgba(255,198,0,0.2);
-        color: #ffc600;
+        background: rgba(255, 179, 71, 0.1);
+        color: #ffb347;
+        border-color: rgba(255, 179, 71, 0.3);
       }
 
       .downloadable .video-type {
-        background: rgba(40,167,69,0.2);
-        color: #28a745;
+        background: rgba(0, 212, 170, 0.1);
+        color: #00d4aa;
+        border-color: rgba(0, 212, 170, 0.3);
       }
     `;
 
