@@ -571,10 +571,40 @@ export class StyleManager {
         margin-bottom: 12px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        padding: 8px 12px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .events-count:hover {
+        background: rgba(255,255,255,0.08);
+      }
+
+      .events-count.collapsed .collapse-icon {
+        transform: rotate(-90deg);
       }
 
       .events-count-icon {
         margin-right: 8px;
+        display: flex;
+        align-items: center;
+      }
+
+      .events-count-text {
+        flex: 1;
+      }
+
+      .collapse-icon {
+        transition: transform 0.3s ease;
+        display: flex;
+        align-items: center;
+      }
+
+      .events-cards.collapsed {
+        display: none !important;
       }
 
       .events-cards {

@@ -26,6 +26,31 @@ export class PopupRenderer {
     this.onClearCaptured = null;
     this.styleManager = new StyleManager();
     this.eventBinder = new EventBinder(container, this.getCallbacks());
+
+    // Make toggle function globally available
+    if (typeof window !== 'undefined') {
+      window.toggleEventsList = () => this.toggleEventsList();
+    }
+  }
+
+  /**
+   * Toggles the events list visibility
+   */
+  toggleEventsList() {
+    const header = this.container.querySelector('.events-count');
+    const cardsContainer = this.container.querySelector('#events-cards-container');
+
+    if (header && cardsContainer) {
+      const isCollapsed = header.classList.contains('collapsed');
+
+      if (isCollapsed) {
+        header.classList.remove('collapsed');
+        cardsContainer.classList.remove('collapsed');
+      } else {
+        header.classList.add('collapsed');
+        cardsContainer.classList.add('collapsed');
+      }
+    }
   }
 
   /**
@@ -157,6 +182,26 @@ export class PopupRenderer {
 
     this.container.innerHTML = html;
     this.eventBinder.bindEventHandlers();
+
+    // Add collapsible functionality globally
+    if (typeof window !== 'undefined') {
+      window.toggleEventsList = () => {
+        const header = document.querySelector('.events-count');
+        const cardsContainer = document.getElementById('events-cards-container');
+
+        if (header && cardsContainer) {
+          const isCollapsed = header.classList.contains('collapsed');
+
+          if (isCollapsed) {
+            header.classList.remove('collapsed');
+            cardsContainer.classList.remove('collapsed');
+          } else {
+            header.classList.add('collapsed');
+            cardsContainer.classList.add('collapsed');
+          }
+        }
+      };
+    }
   }
 
   /**
@@ -197,21 +242,12 @@ export class PopupRenderer {
    * Renders action buttons for events
    */
   renderEventActions(events) {
-    const mediaEvents = events.filter(e => e.imageSrc || e.videoSrc);
     const reelEvents = events.filter(e => e.label === 'Reel' && e.eventUrl);
     const videoEvents = events.filter(e => e.hasVideo && e.eventUrl);
 
     let buttons = [];
 
-    if (events.length > 0) {
-      buttons.push(ACTION_BUTTON('download-all-csv-btn', '', '📊', 'Export All CSV'));
-    }
-
-    if (mediaEvents.length > 0) {
-      buttons.push(ACTION_BUTTON('download-media-btn', 'primary-download',
-        '📸', `Download All Media (${mediaEvents.length})`,
-        'width: 100%; justify-content: center; font-size: 14px; margin-bottom: 8px; padding: 12px;'));
-    }
+    // Removed individual download buttons - now using the complete download in captured videos section
 
     if (reelEvents.length > 0) {
       buttons.push(ACTION_BUTTON('open-reels-btn', 'accent', '🎬', `Open Reels (${reelEvents.length})`));

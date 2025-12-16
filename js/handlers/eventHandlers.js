@@ -618,12 +618,13 @@ export class EventHandlers {
     }
 
     /**
-     * Generates CSV data from events
+     * Generates CSV data from events and captured videos
      */
-    generateCSVData(events) {
-        const headers = ['Index', 'Label', 'Platforms', 'Timestamp', 'Description', 'Image URL', 'Video URL', 'Event URL', 'Has Video'];
+    generateCSVData(events, capturedVideos = []) {
+        const headers = ['Index', 'Label', 'Platforms', 'Timestamp', 'Description', 'Image URL', 'Video URL', 'Event URL', 'Has Video', 'Video Source'];
         const csvRows = [headers.join(',')];
 
+        // Add event data
         events.forEach((event, index) => {
             const row = [
                 index + 1,
@@ -634,7 +635,25 @@ export class EventHandlers {
                 `"${event.imageSrc || ''}"`,
                 `"${event.videoSrc || ''}"`,
                 `"${event.eventUrl || ''}"`,
-                event.hasVideo ? 'Yes' : 'No'
+                event.hasVideo ? 'Yes' : 'No',
+                'Event Data'
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        // Add captured videos data
+        capturedVideos.forEach((video, index) => {
+            const row = [
+                `V${index + 1}`,
+                `"Captured Video ${index + 1}"`,
+                '',
+                `"${new Date().toLocaleString()}"`,
+                `"Duration: ${Math.round(video.duration || 0)}s"`,
+                '',
+                `"${video.url}"`,
+                '',
+                'Yes',
+                `"${video.type} (Captured)"`
             ];
             csvRows.push(row.join(','));
         });
@@ -1070,6 +1089,17 @@ export class EventHandlers {
      */
     async handleDownloadCapturedVideos() {
         const capturedVideos = this.controller.capturedVideos || [];
+
+        // Deduplicate captured videos (remove duplicates from server returning 3 copies)
+        const uniqueCapturedVideos = [];
+        const seenUrls = new Set();
+        capturedVideos.forEach(video => {
+            if (!seenUrls.has(video.url)) {
+                seenUrls.add(video.url);
+                uniqueCapturedVideos.push(video);
+            }
+        });
+
         const mediaItems = this.controller.events
             .map((event, index) => ({
                 url: event.imageSrc || event.videoSrc,
@@ -1082,27 +1112,44 @@ export class EventHandlers {
             }))
             .filter(item => item.url && item.url !== 'VIDEO DETECTADO');
 
-        const totalVideos = capturedVideos.length + mediaItems.filter(item => item.type === 'video').length;
+        // Generate consistent filenames for captured videos
+        const capturedVideoItems = uniqueCapturedVideos.map((video, index) => {
+            const filename = `BlazeMedia/captured_video_${index + 1}_${timestamp}.mp4`;
+            return {
+                url: video.url,
+                filename: filename,
+                type: 'video',
+                label: `Captured Video ${index + 1}`,
+                description: `Duration: ${Math.round(video.duration || 0)}s`,
+                platforms: '',
+                timestamp: new Date().toLocaleString()
+            };
+        });
+
+        // Combine all items for HTML gallery
+        const allItems = [...capturedVideoItems, ...mediaItems];
+
+        const totalVideos = uniqueCapturedVideos.length + mediaItems.filter(item => item.type === 'video').length;
         const totalImages = mediaItems.filter(item => item.type === 'image').length;
-        const totalFiles = capturedVideos.length + mediaItems.length;
+        const totalFiles = uniqueCapturedVideos.length + mediaItems.length;
 
         if (totalFiles === 0) {
             this.controller.renderer.showMessage('No videos or media to download', 'info');
             return;
         }
 
-        this.controller.renderer.showMessage(`Downloading complete package: ${capturedVideos.length} captured videos + ${mediaItems.length} media files...`, 'info');
+        this.controller.renderer.showMessage(`Downloading complete package: ${uniqueCapturedVideos.length} captured videos + ${mediaItems.length} media files...`, 'info');
 
         try {
             const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
 
-            // Generate HTML index file content (same as handleDownloadMedia)
-            const htmlContent = this.generateHtmlIndex(mediaItems, timestamp);
+            // Generate HTML index file content with ALL items
+            const htmlContent = this.generateHtmlIndex(allItems, timestamp);
             const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
             const htmlDataUrl = await this.blobToDataURL(htmlBlob);
 
-            // Generate CSV data
-            const csvContent = this.generateCSVData(this.controller.events);
+            // Generate CSV data with video URLs
+            const csvContent = this.generateCSVData(this.controller.events, uniqueCapturedVideos);
             const csvBlob = new Blob([csvContent], { type: 'text/csv' });
             const csvDataUrl = await this.blobToDataURL(csvBlob);
 
@@ -1122,10 +1169,10 @@ export class EventHandlers {
                 });
             }, 500);
 
-            // Download all captured videos
-            capturedVideos.forEach((video, index) => {
+            // Download all captured videos (deduplicated) - use same timestamp as HTML
+            uniqueCapturedVideos.forEach((video, index) => {
                 setTimeout(() => {
-                    const filename = `BlazeMedia/captured_video_${index + 1}_${Date.now()}.mp4`;
+                    const filename = `BlazeMedia/captured_video_${index + 1}_${timestamp}.mp4`;
                     chrome.downloads.download({
                         url: video.url,
                         filename: filename,
@@ -1146,7 +1193,7 @@ export class EventHandlers {
                 downloadIndex++;
             });
 
-            this.controller.renderer.showMessage(`Complete package downloaded: HTML gallery, CSV data, ${capturedVideos.length} captured videos, and ${mediaItems.length} media files!`, 'success');
+            this.controller.renderer.showMessage(`Complete package downloaded: HTML gallery, CSV data, ${uniqueCapturedVideos.length} captured videos, and ${mediaItems.length} media files!`, 'success');
 
         } catch (error) {
             console.error('Complete download failed:', error);
