@@ -26,6 +26,7 @@ export class PopupRenderer {
     this.onClearCaptured = null;
     this.styleManager = new StyleManager();
     this.eventBinder = new EventBinder(container, this.getCallbacks());
+    this.footerVersion = 'v1.8';
 
     // Make toggle function globally available
     if (typeof window !== 'undefined') {
@@ -89,7 +90,7 @@ export class PopupRenderer {
 
     const content = POPUP_HEADER('AgencySMM', 'Checking service status...') +
                    MAIN_CONTENT(LOADING_SECTION(LOADING_SPINNER, 'Cargando...')) +
-                   POPUP_FOOTER('v1.8');
+                   POPUP_FOOTER(this.footerVersion);
 
     this.container.innerHTML = POPUP_WRAPPER(content);
   }
@@ -103,7 +104,7 @@ export class PopupRenderer {
 
     const content = POPUP_HEADER('AgencySMM', 'Service Status') +
                    MAIN_CONTENT(UNAVAILABLE_SECTION) +
-                   POPUP_FOOTER('v1.8');
+                   POPUP_FOOTER(this.footerVersion);
 
     this.container.innerHTML = POPUP_WRAPPER(content);
   }
@@ -117,7 +118,7 @@ export class PopupRenderer {
 
     const content = POPUP_HEADER('AgencySMM', 'Auto-Scanning Active Page...') +
                    MAIN_CONTENT(LOADING_SECTION(LOADING_SPINNER, 'Analyzing page content...')) +
-                   POPUP_FOOTER('v2.0 Auto-Pilot');
+                   POPUP_FOOTER(this.footerVersion);
 
     this.container.innerHTML = POPUP_WRAPPER(content);
   }
@@ -177,7 +178,8 @@ export class PopupRenderer {
 
     const html = POPUP_WRAPPER(
       POPUP_HEADER('🎯AgencySMM', 'Professional Content Extractor Demo Version') +
-      RESULTS_CONTENT(header, INSPECTOR_RESULTS, CAPTURED_ITEMS_CONTAINER, content)
+      RESULTS_CONTENT(header, INSPECTOR_RESULTS, CAPTURED_ITEMS_CONTAINER, content) +
+      POPUP_FOOTER(this.footerVersion)
     );
 
     this.container.innerHTML = html;

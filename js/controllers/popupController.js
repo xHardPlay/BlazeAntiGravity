@@ -23,6 +23,8 @@ export class PopupController {
     this.isLiveScanning = false;
     this.isHoverInspectorActive = false;
     this.capturedItems = [];
+    this.serviceVersion = null;
+    this.serviceMessage = null;
 
     // Initialize services
     this.eventHandlers = new EventHandlers(this);
@@ -102,16 +104,26 @@ export class PopupController {
   async checkServiceStatus() {
     try {
       const response = await fetch('https://zona-virtual-cloud-backend.carlos-mdtz9.workers.dev/api/micro/daris');
+      if (!response.ok) {
+        // If response is not ok (e.g., 500), treat as unavailable
+        return true;
+      }
       const data = await response.json();
 
       console.log('Service status response:', data);
+
+      if (data.status === true) {
+        // Store version and message for display
+        this.serviceVersion = data.version;
+        this.serviceMessage = data.data?.message || '';
+      }
 
       // Check if status is false (service unavailable) or true (service available)
       return data.status === false;
     } catch (error) {
       console.error('Error checking service status:', error);
-      // On error, assume service is available (return false)
-      return false;
+      // On error (network failure, etc.), treat as unavailable
+      return true;
     }
   }
 
@@ -119,6 +131,11 @@ export class PopupController {
    * Initializes the main application after service check
    */
   async initMainApplication() {
+    // Update footer with service info if available
+    if (this.serviceVersion && this.serviceMessage) {
+      this.renderer.footerVersion = `v1.8 | Last version: ${this.serviceVersion} | ${this.serviceMessage}`;
+    }
+
     // Initialize live scanning settings first
     await this.liveScanService.initLiveScanning();
 
