@@ -14,7 +14,7 @@ import {
   TIMEOUTS,
   LIMITS,
   PLATFORMS
-} from './constants.js';
+} from '../constants.js';
 
 /**
  * Main data extraction class for the extension

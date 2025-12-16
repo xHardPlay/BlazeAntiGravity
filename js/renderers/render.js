@@ -1,4 +1,4 @@
-import { getColors, setOverlayStyles, isDarkMode } from './theme.js';
+import { getColors, setOverlayStyles, isDarkMode } from '../styles/theme.js';
 import {
   collectHeadings,
   collectParagraphs,
@@ -8,7 +8,7 @@ import {
   collectButtons,
   collectOtherText,
   collectTables
-} from './collectors.js';
+} from '../utils/collectors.js';
 
 // Helper to build tree HTML for lists
 export function buildListTree(item, indent = 10) {

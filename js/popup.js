@@ -3,7 +3,7 @@
  * Uses separate modules for concerns: data extraction, UI rendering, event handling, CSV export
  */
 
-import PopupController from './popupController.js';
+import PopupController from './controllers/popupController.js';
 
 // Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {

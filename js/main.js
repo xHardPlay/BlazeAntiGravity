@@ -1,5 +1,5 @@
-import { createOverlay } from './overlay.js';
-import { updateContent } from './render.js';
+import { createOverlay } from './renderers/overlay.js';
+import { updateContent } from './renderers/render.js';
 
 // Main initialization
 const overlay = createOverlay();
