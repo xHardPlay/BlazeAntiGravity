@@ -143,7 +143,7 @@ export class StyleManager {
       .extension-popup {
         font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
         background: #0a0a0a;
-        min-height: 600px;
+        height: 100vh;
         color: #ffffff;
         padding: 0;
         border-radius: 8px;

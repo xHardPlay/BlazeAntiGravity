@@ -1,4 +1,4 @@
-import { getColors, setOverlayStyles } from '../styles/theme.js';
+import { getColors, setOverlayStyles, getThemeColors } from '../styles/theme.js';
 import { TIMEOUTS } from '../constants.js';
 import { StyleManager } from '../styles/styleManager.js';
 import { EventBinder } from '../handlers/eventBinder.js';
@@ -450,42 +450,69 @@ export class PopupRenderer {
     // Remove any existing notification
     this.removeExistingNotification();
 
+    // Get theme colors
+    const colors = getThemeColors();
+
     // Create notification element
     const notification = document.createElement('div');
     notification.className = 'notification';
 
-    // Set type-specific styling
+    // Set type-specific styling using theme colors
+    let bgColor, borderColor;
     if (type === 'success') {
-      notification.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+      bgColor = colors.success;
+      borderColor = colors.success;
     } else if (type === 'error') {
-      notification.style.background = 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)';
+      bgColor = colors.error;
+      borderColor = colors.error;
     } else {
-      notification.style.background = 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)';
+      bgColor = colors.info;
+      borderColor = colors.info;
     }
 
     notification.innerHTML = `
       <span class="notification-message">${message}</span>
-      <span class="notification-close" onclick="this.parentElement.remove()">×</span>
+      <span class="notification-close" onclick="this.parentElement.remove()">✕</span>
     `;
 
-    // Style the notification
+    // Style the notification with tech design
     Object.assign(notification.style, {
       position: 'fixed',
-      top: '10px',
+      bottom: '20px',
       left: '50%',
       transform: 'translateX(-50%)',
-      padding: '12px 20px',
-      borderRadius: '8px',
-      color: 'white',
-      fontSize: '14px',
+      padding: '14px 24px',
+      borderRadius: '12px',
+      background: `linear-gradient(135deg, ${bgColor}20 0%, ${bgColor}10 100%)`,
+      border: `1px solid ${borderColor}40`,
+      color: colors.textPrimary,
+      fontSize: '13px',
       fontWeight: '500',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+      fontFamily: 'Inter, sans-serif',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+      backdropFilter: 'blur(10px)',
       zIndex: '10000',
-      maxWidth: '400px',
+      maxWidth: '420px',
       cursor: 'default',
       opacity: '0',
-      transition: 'opacity 0.3s ease'
+      transform: 'translateX(-50%) translateY(20px)',
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
     });
+
+    // Style the close button
+    const closeBtn = notification.querySelector('.notification-close');
+    Object.assign(closeBtn.style, {
+      marginLeft: '12px',
+      opacity: '0.7',
+      cursor: 'pointer',
+      fontSize: '16px',
+      fontWeight: '300',
+      transition: 'opacity 0.2s ease',
+      userSelect: 'none'
+    });
+
+    closeBtn.onmouseover = () => closeBtn.style.opacity = '1';
+    closeBtn.onmouseout = () => closeBtn.style.opacity = '0.7';
 
     // Add to page
     document.body.appendChild(notification);
@@ -493,13 +520,15 @@ export class PopupRenderer {
     // Animate in
     setTimeout(() => {
       notification.style.opacity = '1';
+      notification.style.transform = 'translateX(-50%) translateY(0)';
     }, 10);
 
     // Auto hide after 4 seconds
     setTimeout(() => {
       if (notification.parentElement) {
         notification.style.opacity = '0';
-        setTimeout(() => notification.remove(), 300);
+        notification.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => notification.remove(), 400);
       }
     }, 4000);
   }
