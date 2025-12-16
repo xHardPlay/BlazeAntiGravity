@@ -182,10 +182,10 @@ export const EVENT_CARD = (index, imageHtml, label, platforms, desc, duration, t
         <div class="event-card-indicators">
           ${hasVideo ? '<span class="indicator video">🎥 Video</span>' : ''}
           ${eventUrl ? '<span class="indicator link">🔗 Has Link</span>' : ''}
+          ${duration ? `<span class="indicator duration">⏱️ ${duration}</span>` : ''}
         </div>
       </div>
       <div class="event-card-desc">${desc}</div>
-      ${duration ? `<div class="event-card-duration">⏱️ ${duration}</div>` : ''}
     </div>
   </div>
 `;

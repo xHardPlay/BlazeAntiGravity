@@ -163,9 +163,29 @@ export class EventHandlers {
                             const hasVideo = hasPlayOverlay || hasVideoContainer || hasVideoTag;
                             const videoSrc = hasVideo ? 'VIDEO DETECTADO' : null;
 
-                            // Extract video duration
+                            // Extract video duration - try multiple methods
+                            let videoDuration = '';
+
+                            // Method 1: Check for visible duration element
                             const durationEl = container.querySelector('[data-testid="video-duration"]');
-                            const videoDuration = durationEl?.textContent?.trim() || '';
+                            if (durationEl?.textContent?.trim()) {
+                                videoDuration = durationEl.textContent.trim();
+                            }
+
+                            // Method 2: If video element exists and has duration loaded
+                            const videoEl = container.querySelector('video');
+                            if (videoEl && videoEl.duration && !isNaN(videoEl.duration)) {
+                                const minutes = Math.floor(videoEl.duration / 60);
+                                const seconds = Math.floor(videoEl.duration % 60);
+                                videoDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                            }
+
+                            // Method 3: Try to extract from video source URL metadata (if available)
+                            if (!videoDuration && videoSrc === 'VIDEO DETECTADO') {
+                                // For videos that are detected but not loaded, we'll show a placeholder
+                                // The actual duration will be captured when the video is opened
+                                videoDuration = '';
+                            }
 
                             // Extract URL
                             const linkEl = container.closest('a') || container.querySelector('a');
@@ -209,6 +229,7 @@ export class EventHandlers {
                                 imageSrc,
                                 videoSrc,
                                 hasVideo,
+                                videoDuration,
                                 isNew,
                                 cardIndex,
                                 eventUrl,
@@ -703,29 +724,41 @@ export class EventHandlers {
         });
     }
 
-    /**
-     * Generates CSV data from events and captured videos
-     */
-    generateCSVData(events, capturedVideos = []) {
-        const headers = ['Index', 'Label', 'Platforms', 'Timestamp', 'Description', 'Image URL', 'Video URL', 'Event URL', 'Has Video', 'Video Source'];
-        const csvRows = [headers.join(',')];
+  /**
+   * Generates CSV data from events and captured videos
+   */
+  generateCSVData(events, capturedVideos = []) {
+    const headers = ['Index', 'Event URL', 'Label', 'Platforms', 'Description', 'Image URL', 'Has Video', 'Duration', 'Video URL', 'Video Source', 'Timestamp'];
+    const csvRows = [headers.join(',')];
 
-        // Add event data
-        events.forEach((event, index) => {
-            const row = [
-                index + 1,
-                `"${(event.label || '').replace(/"/g, '""')}"`,
-                `"${(event.platforms || '').replace(/"/g, '""')}"`,
-                `"${(event.timestamp || '').replace(/"/g, '""')}"`,
-                `"${(event.description || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
-                `"${event.imageSrc || ''}"`,
-                `"${event.videoSrc || ''}"`,
-                `"${event.eventUrl || ''}"`,
-                event.hasVideo ? 'Yes' : 'No',
-                'Event Data'
-            ];
-            csvRows.push(row.join(','));
-        });
+    // Add event data
+    events.forEach((event, index) => {
+      // Convert platforms array to string for CSV
+      let platformsString = '';
+      if (Array.isArray(event.platforms)) {
+        platformsString = event.platforms.join(', ');
+      } else if (event.platforms) {
+        platformsString = event.platforms;
+      }
+
+      // Duration only for events with video
+      const duration = event.hasVideo && event.videoDuration ? event.videoDuration : '';
+
+      const row = [
+        index + 1,
+        `"${event.eventUrl || ''}"`,
+        `"${(event.label || '').replace(/"/g, '""')}"`,
+        `"${platformsString.replace(/"/g, '""')}"`,
+        `"${(event.description || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+        `"${event.imageSrc || ''}"`,
+        event.hasVideo ? 'Yes' : 'No',
+        `"${duration}"`,
+        `"${event.videoSrc || ''}"`,
+        'Event Data',
+        `"${(event.timestamp || '').replace(/"/g, '""')}"`
+      ];
+      csvRows.push(row.join(','));
+    });
 
         // Add captured videos data
         capturedVideos.forEach((video, index) => {

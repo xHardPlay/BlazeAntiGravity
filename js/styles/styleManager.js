@@ -836,6 +836,12 @@ export class StyleManager {
         border: 1px solid ${colors.accentSecondary}40;
       }
 
+      .indicator.duration {
+        background: ${colors.success}20;
+        color: ${colors.success};
+        border: 1px solid ${colors.success}40;
+      }
+
       .event-card-duration {
         font-size: 10px;
         color: ${colors.success};
