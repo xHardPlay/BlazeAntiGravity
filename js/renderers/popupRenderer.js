@@ -225,9 +225,23 @@ export class PopupRenderer {
    * Renders a single event card
    */
   renderEventCard(event, index) {
-    const descTruncated = event.description || 'No description available';
+    const descTruncated = event.description || '';
     const label = event.label || 'Unknown Type';
-    const platforms = event.platforms;
+
+    // Process platforms - handle both array and string formats
+    let platformsArray = [];
+    if (Array.isArray(event.platforms)) {
+      platformsArray = event.platforms.filter(p => p && p.trim());
+    } else if (typeof event.platforms === 'string') {
+      platformsArray = event.platforms.split(',').map(p => p.trim()).filter(p => p);
+    }
+
+    const platformsHtml = platformsArray.length > 0
+      ? platformsArray.map(platform => {
+          const icon = this.getPlatformIcon(platform);
+          return `<span class="platform-tag">${icon} ${platform}</span>`;
+        }).join('')
+      : '';
 
     // Determine icon based on label/type if possible
     let typeIcon = '📄';
@@ -237,7 +251,7 @@ export class PopupRenderer {
     if (label.includes('Email')) typeIcon = '📧';
 
     const imageHtml = event.imageSrc ? EVENT_IMAGE(event.imageSrc) : EVENT_NO_IMAGE(typeIcon);
-    return EVENT_CARD(index, imageHtml, label, platforms, descTruncated, event.videoDuration, event.timestamp, event.hasVideo, event.eventUrl);
+    return EVENT_CARD(index, imageHtml, label, platformsHtml, descTruncated, event.videoDuration, event.timestamp, event.hasVideo, event.eventUrl);
   }
 
   /**
@@ -286,7 +300,7 @@ export class PopupRenderer {
       eventData.label || 'No Label',
       eventData.platforms,
       eventData.timestamp,
-      eventData.description || 'No description available',
+      eventData.description || '',
       actions
     );
 
@@ -498,5 +512,13 @@ export class PopupRenderer {
     if (existing) {
       existing.remove();
     }
+  }
+
+  /**
+   * Returns the appropriate icon for each platform (minimalist - no icons, just text)
+   */
+  getPlatformIcon(platform) {
+    // Return empty string for minimalist design - no icons, just text
+    return '';
   }
 }

@@ -61,17 +61,87 @@ export class EventHandlers {
                                 container.querySelector('span[class*="Text_root_"]');
                             const label = labelSpan?.textContent?.trim() || 'No Label';
 
-                            // Extract platforms
-                            const platformIcons = container.querySelectorAll('[class*="Icon_platformIcon"]');
-                            const platforms = Array.from(platformIcons).map(icon => {
+                            // Extract platforms - filter out container elements
+                            const allPlatformElements = container.querySelectorAll('[class*="Icon_platform"]');
+                            const platformIcons = Array.from(allPlatformElements).filter(el =>
+                                el.classList.contains('Icon_platformIcon__d7da4') &&
+                                !el.classList.contains('Icon_platformIconsContainer__d7da4')
+                            );
+                            console.log(`Event ${index + 1} - Found ${platformIcons.length} platform icons (filtered from ${allPlatformElements.length} total)`);
+
+                            const platforms = Array.from(platformIcons).map((icon, iconIndex) => {
                                 const classes = icon.className;
-                                if (classes.includes('facebookIcon')) return 'Facebook';
-                                if (classes.includes('linkedinIcon')) return 'LinkedIn';
-                                if (classes.includes('instagramIcon')) return 'Instagram';
-                                if (classes.includes('youtubeIcon')) return 'YouTube';
-                                if (classes.includes('xIcon')) return 'X';
+                                console.log(`Event ${index + 1} - Icon ${iconIndex + 1} classes:`, classes);
+
+                                // Use the real CSS classes found in Blaze
+                                if (classes.includes('Icon_facebook__d7da4') || classes.includes('facebook')) return 'Facebook';
+                                if (classes.includes('Icon_linkedin__d7da4') || classes.includes('linkedin')) return 'LinkedIn';
+                                if (classes.includes('Icon_instagram__d7da4') || classes.includes('instagram')) return 'Instagram';
+                                if (classes.includes('Icon_youtube__d7da4') || classes.includes('youtube')) return 'YouTube';
+                                if (classes.includes('Icon_x__d7da4') || classes.includes('Icon_twitter__d7da4') || classes.includes('twitter') || classes.includes('x')) return 'X';
+
+                                // Try to detect by inspecting the icon element more deeply
+                                // Check if it contains SVG or specific child elements
+                                const svgElement = icon.querySelector('svg');
+                                if (svgElement) {
+                                    const svgContent = svgElement.outerHTML;
+
+                                    // Try to identify platforms by unique SVG path patterns
+                                    // Instagram pattern: "M12.0833 1H3.91667C2.30608 1 1 2.30608 1 3.91667V12.0833C1 13.6939 2.30608 15 3.91667 15H12.0833"
+                                    if (svgContent.includes('M12.0833 1H3.91667C2.30608 1 1 2.30608 1 3.91667V12.0833C1 13.6939 2.30608 15 3.91667 15H12.0833')) return 'Instagram';
+
+                                    // LinkedIn pattern: "M14.3921 4.77426" (appears early in LinkedIn SVG)
+                                    if (svgContent.includes('M14.3921 4.77426')) return 'LinkedIn';
+
+                                    // Alternative Instagram pattern: "M14.9808 7.9989" (different Instagram icon)
+                                    if (svgContent.includes('M14.9808 7.9989')) return 'Instagram';
+
+                                    // Fallback text search
+                                    if (svgContent.includes('facebook') || svgContent.includes('Facebook')) return 'Facebook';
+                                    if (svgContent.includes('linkedin') || svgContent.includes('LinkedIn')) return 'LinkedIn';
+                                    if (svgContent.includes('instagram') || svgContent.includes('Instagram')) return 'Instagram';
+                                    if (svgContent.includes('youtube') || svgContent.includes('YouTube')) return 'YouTube';
+                                    if (svgContent.includes('twitter') || svgContent.includes('Twitter') || svgContent.includes('x')) return 'X';
+                                }
+
+                                // Check for data attributes or other identifiers
+                                const allAttributes = Array.from(icon.attributes).map(attr => `${attr.name}="${attr.value}"`).join(' ');
+                                console.log(`Event ${index + 1} - Icon ${iconIndex + 1} all attributes:`, allAttributes);
+
+                                // Fallback: try to extract from aria-label or alt text
+                                const ariaLabel = icon.getAttribute('aria-label') || icon.getAttribute('alt') || icon.getAttribute('title') || '';
+                                if (ariaLabel.includes('Facebook')) return 'Facebook';
+                                if (ariaLabel.includes('LinkedIn')) return 'LinkedIn';
+                                if (ariaLabel.includes('Instagram')) return 'Instagram';
+                                if (ariaLabel.includes('YouTube')) return 'YouTube';
+                                if (ariaLabel.includes('Twitter') || ariaLabel.includes('X')) return 'X';
+
+                                // Last resort: try to infer from parent element or siblings
+                                const parentText = icon.parentElement?.textContent || '';
+                                console.log(`Event ${index + 1} - Icon ${iconIndex + 1} parent text:`, parentText);
+
+                                console.log(`Event ${index + 1} - Icon ${iconIndex + 1} - No platform detected for classes:`, classes);
                                 return '';
-                            }).filter(p => p).join(', ');
+                            }).filter(p => p);
+
+                            // If no platforms detected, try to infer from event label
+                            let finalPlatforms = [...platforms];
+                            if (platforms.length === 0) {
+                                const label = labelSpan?.textContent?.trim() || '';
+                                if (label.includes('Email') || label.includes('email')) {
+                                    finalPlatforms = ['Email'];
+                                } else if (label.includes('Blog') || label.includes('blog')) {
+                                    finalPlatforms = ['Blog'];
+                                } else if (label.includes('Story') || label.includes('story')) {
+                                    finalPlatforms = ['Instagram'];
+                                }
+                            }
+
+                            const platformsString = finalPlatforms.join(', ');
+                            console.log(`Event ${index + 1} - Final platforms array:`, finalPlatforms, 'Final string:', platformsString);
+
+                            // Debug: Log platform extraction info
+                            console.log(`Event ${index + 1} - Platforms found:`, platformIcons.length, 'platforms:', platformsString);
 
                             // Extract timestamp
                             const eventHeader = container.querySelector('[class*="CalendarEventCard_eventHeader"]');
@@ -115,9 +185,25 @@ export class EventHandlers {
                                 await new Promise(resolve => setTimeout(resolve, 150));
                             }
 
+                            // Apply platform inference for events without detected platforms
+                            let inferredPlatforms = [...platforms];
+                            if (platforms.length === 0) {
+                                console.log(`Event ${index + 1} - No platforms detected, checking label: "${label}"`);
+                                if (label.toLowerCase().includes('email')) {
+                                    inferredPlatforms = ['Email'];
+                                    console.log(`Event ${index + 1} - Inferred Email platform`);
+                                } else if (label.toLowerCase().includes('blog')) {
+                                    inferredPlatforms = ['Blog'];
+                                    console.log(`Event ${index + 1} - Inferred Blog platform`);
+                                } else if (label.toLowerCase().includes('story')) {
+                                    inferredPlatforms = ['Instagram'];
+                                    console.log(`Event ${index + 1} - Inferred Instagram platform for Story`);
+                                }
+                            }
+
                             events.push({
                                 label,
-                                platforms,
+                                platforms: inferredPlatforms,
                                 timestamp,
                                 description,
                                 imageSrc,

@@ -777,13 +777,25 @@ export class StyleManager {
       }
 
       .event-card-platforms {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 4px;
+      }
+
+      .platform-tag {
         font-size: 10px;
-        color: ${colors.textMuted};
-        background: ${colors.surface};
-        padding: 2px 6px;
-        border-radius: 10px;
+        color: ${colors.accent};
+        background: ${colors.accent}15;
+        padding: 3px 8px;
+        border-radius: 12px;
         white-space: nowrap;
-        border: 1px solid ${colors.border};
+        border: 1px solid ${colors.accent}30;
+        font-weight: 600;
+        display: inline-block;
+        font-family: 'Inter', system-ui, sans-serif;
+        text-transform: capitalize;
+        letter-spacing: 0.2px;
       }
 
       .event-card-meta {
@@ -865,6 +877,10 @@ export class StyleManager {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+      }
+
+      .event-card-desc:empty {
+        display: none;
       }
 
       .event-no-image {
