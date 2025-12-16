@@ -161,7 +161,30 @@ export class EventHandlers {
                             const hasVideoContainer = !!container.querySelector('[class*="VideoPlayer_videoContainer"]');
                             const hasVideoTag = !!container.querySelector('video');
                             const hasVideo = hasPlayOverlay || hasVideoContainer || hasVideoTag;
-                            const videoSrc = hasVideo ? 'VIDEO DETECTADO' : null;
+
+                            // Try to get actual video URL if available
+                            let videoSrc = null;
+                            if (hasVideo) {
+                                // Check for video source in various formats
+                                const videoEl = container.querySelector('video');
+                                if (videoEl && videoEl.src && videoEl.src !== 'about:blank') {
+                                    videoSrc = videoEl.src;
+                                } else {
+                                    // Look for video URLs in data attributes or other elements
+                                    const videoContainer = container.querySelector('[class*="VideoPlayer_videoContainer"]');
+                                    if (videoContainer) {
+                                        const dataSrc = videoContainer.getAttribute('data-src') || videoContainer.getAttribute('data-video-src');
+                                        if (dataSrc) {
+                                            videoSrc = dataSrc;
+                                        }
+                                    }
+                                }
+
+                                // If still no URL found, mark as detected for later resolution
+                                if (!videoSrc) {
+                                    videoSrc = 'VIDEO DETECTADO';
+                                }
+                            }
 
                             // Extract video duration - try multiple methods
                             let videoDuration = '';
@@ -267,6 +290,9 @@ export class EventHandlers {
 
             // Store events
             this.controller.events = data.events;
+
+            // Try to connect captured videos with events based on duration matching
+            this.connectVideosToEvents();
 
             // Render the data
             this.controller.renderer.renderDataGrid(data);
@@ -730,6 +756,11 @@ export class EventHandlers {
   generateCSVData(events, capturedVideos = []) {
     const headers = ['Index', 'Event URL', 'Label', 'Platforms', 'Description', 'Image URL', 'Has Video', 'Duration', 'Video URL', 'Video Source', 'Timestamp'];
     const csvRows = [headers.join(',')];
+
+    // Ensure videos are connected before generating CSV
+    if (capturedVideos && capturedVideos.length > 0) {
+      this.connectVideosToEventsForCSV(events, capturedVideos);
+    }
 
     // Add event data
     events.forEach((event, index) => {
@@ -1394,6 +1425,129 @@ export class EventHandlers {
 
         // Update UI
         this.controller.renderer.renderCapturedItems(this.controller.capturedItems);
+    }
+
+    /**
+     * Connects captured videos to events based on duration matching
+     */
+    connectVideosToEvents() {
+        if (!this.controller.events || !this.controller.capturedVideos) return;
+
+        console.log('🔗 Attempting to connect videos to events by duration matching...');
+
+        const eventsWithVideos = this.controller.events.filter(event => event.hasVideo);
+        const availableVideos = [...this.controller.capturedVideos];
+        let connectionsMade = 0;
+
+        console.log(`📊 Found ${eventsWithVideos.length} events with videos and ${availableVideos.length} captured videos`);
+
+        eventsWithVideos.forEach(event => {
+            if (event.videoSrc !== 'VIDEO DETECTADO') {
+                // Event already has a real video URL
+                return;
+            }
+
+            // Parse event duration (format: "MM:SS" or "SS")
+            let eventDurationSeconds = 0;
+            if (event.videoDuration) {
+                const durationMatch = event.videoDuration.match(/^(\d+):(\d+)$/);
+                if (durationMatch) {
+                    eventDurationSeconds = parseInt(durationMatch[1]) * 60 + parseInt(durationMatch[2]);
+                } else {
+                    // Try as seconds only
+                    eventDurationSeconds = parseInt(event.videoDuration) || 0;
+                }
+            }
+
+            if (eventDurationSeconds === 0) {
+                console.log(`⏰ Event "${event.label}" has no valid duration (${event.videoDuration})`);
+                return;
+            }
+
+            // Find best video match by duration (closest match within 3 seconds)
+            let bestMatch = null;
+            let bestMatchDiff = Infinity;
+
+            availableVideos.forEach((video, index) => {
+                const videoDuration = Math.round(video.duration || 0);
+                const durationDiff = Math.abs(videoDuration - eventDurationSeconds);
+
+                // Only consider matches within 3 seconds difference
+                if (durationDiff <= 3 && durationDiff < bestMatchDiff) {
+                    bestMatch = { video, index, durationDiff };
+                    bestMatchDiff = durationDiff;
+                }
+            });
+
+            if (bestMatch) {
+                // Connect the video to the event
+                event.videoSrc = bestMatch.video.url;
+                console.log(`✅ Connected: Event "${event.label}" (${eventDurationSeconds}s) → Video ${bestMatch.index + 1} (${Math.round(bestMatch.video.duration)}s, diff: ${bestMatch.durationDiff}s)`);
+
+                // Remove this video from available list to avoid double matching
+                availableVideos.splice(bestMatch.index, 1);
+                connectionsMade++;
+            } else {
+                console.log(`❌ No match found for: Event "${event.label}" (${eventDurationSeconds}s)`);
+            }
+        });
+
+        console.log(`🎉 Video-Event connections completed: ${connectionsMade} connections made`);
+        if (connectionsMade > 0) {
+            this.controller.renderer.showMessage(`Connected ${connectionsMade} videos to their events!`, 'success');
+        }
+    }
+
+    /**
+     * Connects videos to events specifically for CSV generation
+     */
+    connectVideosToEventsForCSV(events, capturedVideos) {
+        if (!events || !capturedVideos || capturedVideos.length === 0) return;
+
+        console.log('📊 Connecting videos for CSV generation...');
+
+        const eventsWithVideos = events.filter(event => event.hasVideo && event.videoSrc === 'VIDEO DETECTADO');
+        const availableVideos = [...capturedVideos];
+        let connectionsMade = 0;
+
+        eventsWithVideos.forEach(event => {
+            // Parse event duration (format: "MM:SS" or "SS")
+            let eventDurationSeconds = 0;
+            if (event.videoDuration) {
+                const durationMatch = event.videoDuration.match(/^(\d+):(\d+)$/);
+                if (durationMatch) {
+                    eventDurationSeconds = parseInt(durationMatch[1]) * 60 + parseInt(durationMatch[2]);
+                } else {
+                    eventDurationSeconds = parseInt(event.videoDuration) || 0;
+                }
+            }
+
+            if (eventDurationSeconds === 0) return;
+
+            // Find best video match by duration
+            let bestMatch = null;
+            let bestMatchDiff = Infinity;
+
+            availableVideos.forEach((video, index) => {
+                const videoDuration = Math.round(video.duration || 0);
+                const durationDiff = Math.abs(videoDuration - eventDurationSeconds);
+
+                if (durationDiff <= 3 && durationDiff < bestMatchDiff) {
+                    bestMatch = { video, index, durationDiff };
+                    bestMatchDiff = durationDiff;
+                }
+            });
+
+            if (bestMatch) {
+                event.videoSrc = bestMatch.video.url;
+                availableVideos.splice(bestMatch.index, 1);
+                connectionsMade++;
+            }
+        });
+
+        if (connectionsMade > 0) {
+            console.log(`📊 CSV: Connected ${connectionsMade} videos to events`);
+        }
     }
 
     /**
