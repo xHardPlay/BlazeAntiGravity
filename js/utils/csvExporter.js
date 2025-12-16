@@ -42,22 +42,12 @@ export class CSVExporter {
     const headers = [
       'Label',
       'Platforms',
-      'Timestamp',
       'Description',
       'Image URL',
-      'Video URL',
       'Has Video',
-      'Video Duration',
-      'Is New',
-      'Badge Text',
-      'Can Open Preview',
-      'Brand Color',
-      'Image Width',
-      'Image Height',
-      'Aspect Ratio',
-      'Card Index',
-      'Card Classes',
-      'Event URL'
+      'Duration',
+      'Video URL',
+      'Timestamp'
     ];
 
     return headers.join(',');
@@ -72,22 +62,12 @@ export class CSVExporter {
     const fields = [
       event.label,
       event.platforms,
-      event.timestamp,
       event.description,
       event.imageSrc,
-      event.videoSrc,
       event.hasVideo,
       event.videoDuration,
-      event.isNew,
-      event.badgeText,
-      event.canOpenPreview,
-      event.brandColor,
-      event.imageWidth,
-      event.imageHeight,
-      event.aspectRatio,
-      event.cardIndex,
-      event.cardClasses,
-      event.eventUrl
+      event.videoSrc,
+      event.timestamp
     ];
 
     return fields.map(field => `"${field || ''}"`).join(',');
