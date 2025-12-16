@@ -201,168 +201,159 @@ export class StyleManager {
       }
 
       .main-content {
-        padding: 24px;
-      }
-
-      .welcome-section {
-        text-align: center;
-        margin-bottom: 32px;
-      }
-
-      .welcome-section h2 {
-        margin: 0 0 8px 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: #ffffff;
-      }
-
-      .welcome-section p {
-        margin: 0;
-        font-size: 14px;
-        color: #b0b0b0;
-        line-height: 1.5;
-      }
-
-      .capture-area {
-        background: #1a1a1a;
-        border: 1px solid #333333;
-        border-radius: 8px;
-        padding: 24px;
-        text-align: center;
-      }
-
-      .capture-area:hover {
-        border-color: #404040;
-      }
-
-      .capture-instructions {
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 20px;
+        height: 100%;
+        padding: 0;
       }
 
-      .instruction-icon {
-        font-size: 20px;
-        margin-right: 12px;
-        color: #00d4aa;
-      }
-
-      .instruction-text {
-        font-size: 14px;
-        color: #b0b0b0;
-        max-width: 200px;
-      }
-
-      .capture-button {
-        background: #00d4aa;
-        border: none;
-        border-radius: 6px;
-        padding: 14px 28px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        font-size: 14px;
-        font-weight: 600;
-        color: #0a0a0a;
-        transition: all 0.25s ease;
-        text-decoration: none;
-      }
-
-      .capture-button:hover {
-        background: #00a8ff;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
-      }
-
-      .button-icon {
-        margin-right: 8px;
-        font-size: 16px;
-      }
-
-      .live-scan-toggle {
-        margin: 16px 0;
-        text-align: center;
-      }
-
-      .toggle-label {
-        display: inline-flex;
-        align-items: center;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        color: #b0b0b0;
-      }
-
-      .toggle-label input[type="checkbox"] {
-        display: none;
-      }
-
-      .toggle-slider {
-        position: relative;
-        width: 40px;
-        height: 20px;
-        background: #2a2a2a;
-        border-radius: 10px;
-        margin: 0 10px;
-        transition: all 0.25s ease;
-        border: 1px solid #333333;
-      }
-
-      .toggle-slider::before {
-        content: '';
-        position: absolute;
-        top: 1px;
-        left: 1px;
-        width: 16px;
-        height: 16px;
-        background: #808080;
-        border-radius: 50%;
-        transition: all 0.25s ease;
-      }
-
-      .toggle-label input[type="checkbox"]:checked + .toggle-slider {
-        background: rgba(0, 212, 170, 0.2);
-        border-color: #00d4aa;
-      }
-
-      .toggle-label input[type="checkbox"]:checked + .toggle-slider::before {
-        background: #00d4aa;
-        transform: translateX(20px);
-      }
-
-      .features-preview {
+      /* SCAN Container - Centers the button */
+      .scan-container {
         display: flex;
-        justify-content: space-around;
-        margin-top: 24px;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        position: relative;
       }
 
-      .feature-item {
+      /* SOPHISTICATED SCAN BUTTON */
+      .scan-button {
+        position: relative;
+        background: linear-gradient(135deg, rgba(0, 212, 170, 0.1) 0%, rgba(0, 168, 255, 0.05) 100%);
+        border: 1px solid rgba(0, 212, 170, 0.3);
+        border-radius: 20px;
+        padding: 24px 48px;
+        cursor: pointer;
         display: flex;
         flex-direction: column;
         align-items: center;
-        text-align: center;
-        color: #b0b0b0;
-        transition: color 0.25s ease;
-      }
-
-      .feature-item:hover {
-        color: #00d4aa;
-      }
-
-      .feature-icon {
+        justify-content: center;
+        font-family: 'Inter', system-ui, sans-serif;
         font-size: 18px;
-        margin-bottom: 6px;
-        transition: transform 0.25s ease;
-      }
-
-      .feature-item:hover .feature-icon {
-        transform: scale(1.1);
-      }
-
-      .feature-text {
-        font-size: 12px;
         font-weight: 500;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        min-width: 180px;
+        min-height: 90px;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(20px);
+        box-shadow:
+          0 4px 20px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      /* SUBTLE SHIMMER EFFECT */
+      .pixel-effect {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.03) 50%,
+          transparent 100%
+        );
+        animation: subtleShimmer 8s ease-in-out infinite;
+      }
+
+      /* ELEGANT GLOW */
+      .scan-button::before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        right: -1px;
+        bottom: -1px;
+        background: linear-gradient(135deg,
+          rgba(0, 212, 170, 0.2),
+          rgba(0, 168, 255, 0.1),
+          rgba(0, 212, 170, 0.2)
+        );
+        border-radius: 21px;
+        opacity: 0.5;
+        z-index: -1;
+        animation: elegantGlow 6s ease-in-out infinite alternate;
+      }
+
+      /* HOVER STATE - Sophisticated lift */
+      .scan-button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(0, 212, 170, 0.6);
+        background: linear-gradient(135deg, rgba(0, 212, 170, 0.15) 0%, rgba(0, 168, 255, 0.08) 100%);
+        box-shadow:
+          0 8px 32px rgba(0, 212, 170, 0.2),
+          0 4px 16px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+
+      .scan-button:hover .pixel-effect {
+        animation: shimmerHover 4s ease-in-out infinite;
+      }
+
+      /* PRESSED STATE - Elegant depression */
+      .scan-button:active {
+        transform: translateY(0px);
+        background: linear-gradient(135deg, rgba(0, 212, 170, 0.2) 0%, rgba(0, 168, 255, 0.1) 100%);
+        box-shadow:
+          0 2px 8px rgba(0, 212, 170, 0.3),
+          inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: all 0.1s ease;
+      }
+
+      /* ICON AND TEXT STYLING */
+      .button-icon {
+        font-size: 28px;
+        margin-bottom: 6px;
+        opacity: 0.9;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      }
+
+      .button-text {
+        position: relative;
+        z-index: 2;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      }
+
+      /* SOPHISTICATED ANIMATIONS */
+
+      /* Subtle shimmer */
+      @keyframes subtleShimmer {
+        0%, 100% { transform: translateX(-100%); }
+        50% { transform: translateX(100%); }
+      }
+
+      /* Hover shimmer */
+      @keyframes shimmerHover {
+        0%, 100% { transform: translateX(-100%); }
+        50% { transform: translateX(100%); }
+      }
+
+      /* Elegant glow animation */
+      @keyframes elegantGlow {
+        0% {
+          opacity: 0.3;
+          background: linear-gradient(135deg,
+            rgba(0, 212, 170, 0.15),
+            rgba(0, 168, 255, 0.08),
+            rgba(0, 212, 170, 0.15)
+          );
+        }
+        100% {
+          opacity: 0.6;
+          background: linear-gradient(135deg,
+            rgba(0, 168, 255, 0.15),
+            rgba(0, 212, 170, 0.08),
+            rgba(0, 168, 255, 0.15)
+          );
+        }
       }
 
       .popup-footer {
@@ -380,44 +371,6 @@ export class StyleManager {
         font-size: 11px;
         color: #808080;
         font-weight: 400;
-      }
-
-      .video-scan-area {
-        margin-top: 16px;
-        text-align: center;
-      }
-
-      .video-scan-button {
-        background: #2a2a2a;
-        border: 1px solid #333333;
-        border-radius: 6px;
-        padding: 12px 24px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        font-size: 14px;
-        font-weight: 500;
-        color: #ffffff;
-        transition: all 0.25s ease;
-        text-decoration: none;
-      }
-
-      .video-scan-button:hover {
-        background: #00d4aa;
-        color: #0a0a0a;
-        border-color: #00d4aa;
-        transform: translateY(-1px);
-      }
-
-      .video-icon {
-        margin-right: 8px;
-        font-size: 14px;
-      }
-
-      .video-description {
-        margin-top: 8px;
-        font-size: 12px;
-        color: #808080;
       }
 
       /* Top Button Bar Styles */
@@ -507,6 +460,31 @@ export class StyleManager {
       .results-content {
         padding: 24px;
         color: ${colors.textPrimary};
+        height: calc(100vh - 80px); /* Account for header/footer */
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        scrollbar-width: thin;
+        scrollbar-color: ${colors.accent} ${colors.surface};
+      }
+
+      /* Custom scrollbar styling */
+      .results-content::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .results-content::-webkit-scrollbar-track {
+        background: ${colors.surface};
+        border-radius: 3px;
+      }
+
+      .results-content::-webkit-scrollbar-thumb {
+        background: ${colors.accent}40;
+        border-radius: 3px;
+      }
+
+      .results-content::-webkit-scrollbar-thumb:hover {
+        background: ${colors.accent}60;
       }
 
       .results-header {

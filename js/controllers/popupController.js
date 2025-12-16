@@ -139,8 +139,8 @@ export class PopupController {
     // Initialize live scanning settings first
     await this.liveScanService.initLiveScanning();
 
-    // Auto-capture immediately for "One Click" experience
-    await this.eventHandlers.handleCapture();
+    // Show main screen with scan button instead of auto-capturing
+    this.renderer.renderMainScreen();
   }
 }
 

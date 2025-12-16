@@ -12,7 +12,9 @@ export class EventHandlers {
     async handleCapture() {
         try {
             await this.controller.updateActiveTab();
-            this.controller.renderer.showMessage('Capturing data...', 'info');
+
+            // Show loading state with scanning text
+            this.controller.renderer.renderLoadingState();
 
             // Check if we're on a Blaze site
             let tab;

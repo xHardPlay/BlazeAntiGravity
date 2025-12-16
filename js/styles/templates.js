@@ -30,6 +30,17 @@ export const MAIN_CONTENT = (content) => `
   </div>
 `;
 
+// Main screen with centered scan button
+export const MAIN_SCREEN = `
+  <div class="scan-container">
+    <button id="scan-btn" class="scan-button">
+      <span class="button-icon">🔍</span>
+      <span class="button-text">SCAN</span>
+      <div class="pixel-effect"></div>
+    </button>
+  </div>
+`;
+
 // Loading states
 export const LOADING_SECTION = (spinner, text) => `
   <div class="loading-section">

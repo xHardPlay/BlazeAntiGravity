@@ -3,7 +3,7 @@ import { TIMEOUTS } from '../constants.js';
 import { StyleManager } from '../styles/styleManager.js';
 import { EventBinder } from '../handlers/eventBinder.js';
 import {
-  POPUP_WRAPPER, POPUP_HEADER, POPUP_FOOTER, MAIN_CONTENT,
+  POPUP_WRAPPER, POPUP_HEADER, POPUP_FOOTER, MAIN_CONTENT, MAIN_SCREEN,
   LOADING_SECTION, LOADING_SPINNER, UNAVAILABLE_SECTION,
   ERROR_STATE, RETRY_BUTTON, RESULTS_CONTENT, RESULTS_HEADER,
   RESULTS_TITLE, HEADER_BUTTONS, LIVE_SCAN_TOGGLE, INSPECTOR_RESULTS, CAPTURED_ITEMS_CONTAINER,
@@ -89,10 +89,24 @@ export class PopupRenderer {
     this.addLoadingStyles();
 
     const content = POPUP_HEADER('AgencySMM', 'Checking service status...') +
-                   MAIN_CONTENT(LOADING_SECTION(LOADING_SPINNER, 'Cargando...')) +
+                   MAIN_CONTENT(LOADING_SECTION(LOADING_SPINNER, 'Connecting...')) +
                    POPUP_FOOTER(this.footerVersion);
 
     this.container.innerHTML = POPUP_WRAPPER(content);
+  }
+
+  /**
+   * Renders the main screen with scan button
+   */
+  renderMainScreen() {
+    this.addCustomStyles();
+
+    const content = POPUP_HEADER('🎯AgencySMM', 'Professional Content Extractor Demo Version') +
+                   MAIN_CONTENT(MAIN_SCREEN) +
+                   POPUP_FOOTER(this.footerVersion);
+
+    this.container.innerHTML = POPUP_WRAPPER(content);
+    this.eventBinder.bindScanButton();
   }
 
   /**
@@ -116,7 +130,7 @@ export class PopupRenderer {
     this.addCustomStyles();
     this.addLoadingStyles();
 
-    const content = POPUP_HEADER('AgencySMM', 'Auto-Scanning Active Page...') +
+    const content = POPUP_HEADER('AgencySMM', 'Scanning...') +
                    MAIN_CONTENT(LOADING_SECTION(LOADING_SPINNER, 'Analyzing page content...')) +
                    POPUP_FOOTER(this.footerVersion);
 

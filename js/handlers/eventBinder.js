@@ -97,6 +97,13 @@ export class EventBinder {
   }
 
   /**
+   * Binds the scan button
+   */
+  bindScanButton() {
+    this.bindButton('scan-btn', () => this.callbacks.onCapture?.());
+  }
+
+  /**
    * Helper to bind button click handlers
    */
   bindButton(id, handler) {
