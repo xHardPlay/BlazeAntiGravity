@@ -108,17 +108,20 @@ export const HEADER_BUTTONS = `
       <span class="button-icon">🔄</span>
       <span class="button-text">Rescan</span>
     </button>
-    <button id="autopilot-btn" class="top-button">
+    <button id="autopilot-btn" class="top-button" disabled style="opacity: 0.6; cursor: not-allowed;">
       <span class="button-icon">✈️</span>
       <span class="button-text">Auto Pilot</span>
+      <span class="coming-soon-badge">Coming Soon</span>
     </button>
     <button id="inspector-btn" class="top-button">
       <span class="button-icon">🔍</span>
       <span class="button-text">Inspector</span>
+      <span class="beta-badge">Beta</span>
     </button>
-    <button id="debug-dump-btn" class="top-button debug-btn">
+    <button id="debug-dump-btn" class="top-button debug-btn" disabled style="opacity: 0.6; cursor: not-allowed;">
       <span class="button-icon">🐞</span>
       <span class="button-text">Debug</span>
+      <span class="coming-soon-badge">Coming Soon</span>
     </button>
     <button id="scan-videos-btn" class="top-button">
       <span class="button-icon">🎬</span>

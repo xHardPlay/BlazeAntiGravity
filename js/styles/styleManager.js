@@ -426,6 +426,44 @@ export class StyleManager {
       .button-text {
         white-space: nowrap;
       }
+
+      /* Badge styles for disabled features */
+      .coming-soon-badge, .beta-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: 6px;
+        display: inline-flex;
+        align-items: center;
+        vertical-align: middle;
+      }
+
+      .coming-soon-badge {
+        background: linear-gradient(135deg, #ff6b35, #f7931e);
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+      }
+
+      .beta-badge {
+        background: linear-gradient(135deg, #9c27b0, #673ab7);
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
+      }
+
+      /* Disabled button styles */
+      .top-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .top-button:disabled:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: #333333;
+      }
     `);
   }
 
