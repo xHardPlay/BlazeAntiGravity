@@ -959,24 +959,29 @@ export class StyleManager {
 
       .action-buttons {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 12px;
+        margin-bottom: 60px; /* Extra space for footer */
       }
 
       .action-button {
         background: ${colors.surfaceSecondary};
         border: 1px solid ${colors.border};
-        border-radius: 6px;
-        padding: 8px 12px;
+        border-radius: 4px;
+        padding: 6px 8px;
         cursor: pointer;
         color: ${colors.textPrimary};
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 500;
         display: flex;
         align-items: center;
         transition: all ${animations.normal} ${animations.easing};
         position: relative;
         overflow: hidden;
+        min-width: auto;
+        max-width: 140px;
       }
 
       .action-button::before {

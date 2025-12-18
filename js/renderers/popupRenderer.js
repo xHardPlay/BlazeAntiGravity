@@ -69,6 +69,7 @@ export class PopupRenderer {
       onDownloadMedia: () => this.onDownloadMedia?.(),
       onOpenReels: () => this.onOpenReels?.(),
       onDownloadAllCSV: () => this.onDownloadAllCSV?.(),
+      onDownloadAllBlazeCSV: () => this.onDownloadAllBlazeCSV?.(),
       onExtractAllVideos: () => this.onExtractAllVideos?.(),
       onExtractAllDetails: () => this.onExtractAllDetails?.(),
       onScanVideos: () => this.onScanVideos?.(),
@@ -261,6 +262,11 @@ export class PopupRenderer {
 
     // Removed individual download buttons - now using the complete download in captured videos section
 
+    // Add CSV for Blaze button
+    if (events.length > 0) {
+      buttons.push(ACTION_BUTTON('download-blaze-csv-btn', 'primary', '📊', `CSV for Blaze (${events.length})`));
+    }
+
     if (reelEvents.length > 0) {
       buttons.push(ACTION_BUTTON('open-reels-btn', 'accent', '🎬', `Open Reels (${reelEvents.length})`));
     }
@@ -429,6 +435,7 @@ export class PopupRenderer {
   onDownloadMedia() { }
   onOpenReels() { }
   onDownloadAllCSV() { }
+  onDownloadAllBlazeCSV() { }
   onExtractAllVideos() { }
   onExtractAllDetails() { }
   onDownloadSingle(url) { }

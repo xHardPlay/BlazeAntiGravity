@@ -56,6 +56,8 @@ export class EventBinder {
     this.bindButton('download-media-btn', () => this.callbacks.onDownloadMedia?.());
     this.bindButton('open-reels-btn', () => this.callbacks.onOpenReels?.());
     this.bindButton('download-all-csv-btn', () => this.callbacks.onDownloadAllCSV?.());
+    this.bindButton('download-blaze-csv-btn', () => this.callbacks.onDownloadAllBlazeCSV?.());
+    this.bindButton('download-csv-only-btn', () => this.callbacks.onDownloadCSVOnly?.());
     this.bindButton('extract-all-videos-btn', () => this.callbacks.onExtractAllVideos?.());
     this.bindButton('extract-all-details-btn', () => this.callbacks.onExtractAllDetails?.());
   }

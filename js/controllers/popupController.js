@@ -59,6 +59,8 @@ export class PopupController {
     this.renderer.onDownloadMedia = () => this.eventHandlers.handleDownloadMedia();
     this.renderer.onOpenReels = () => this.eventHandlers.handleOpenReels();
     this.renderer.onDownloadAllCSV = () => this.eventHandlers.handleDownloadAllCSV();
+    this.renderer.onDownloadCSVOnly = () => this.eventHandlers.handleDownloadCSVOnly();
+    this.renderer.onDownloadAllBlazeCSV = () => this.eventHandlers.handleDownloadAllBlazeCSV();
     this.renderer.onExtractAllVideos = () => this.videoService.handleExtractAllVideos();
     this.renderer.onExtractAllDetails = () => this.autoPilotService.handleExtractAllDetails();
     this.renderer.onScanVideos = () => this.eventHandlers.handleScanVideos();
