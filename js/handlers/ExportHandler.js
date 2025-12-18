@@ -253,13 +253,22 @@ export class ExportHandler {
      */
     generateEventCSVRow(event, index) {
         // New format: postAtSpecificTime, content, link, imageUrls, gifUrl, videoUrls
-        // Only filling content and imageUrls as requested
 
-        // Use description if available, otherwise use label
-        const content = event.description || event.label || '';
+        // Use current timestamp for postAtSpecificTime (not from card)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const postAtSpecificTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+        // Use only description for content (full content, not label fallback)
+        const content = event.description || '';
 
         const row = [
-            '', // postAtSpecificTime (empty)
+            postAtSpecificTime, // postAtSpecificTime (current timestamp)
             `"${this.escapeCsvField(content)}"`, // content
             '', // link (empty)
             `"${event.imageSrc || ''}"`, // imageUrls

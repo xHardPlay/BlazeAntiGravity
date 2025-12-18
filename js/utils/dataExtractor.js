@@ -21,10 +21,21 @@ export class DataExtractor {
 
         console.log(`Found ${eventContainers.length} visible event containers`);
 
-        // Process each event container
+        // Process each event: expand text, then extract data
         for (let index = 0; index < eventContainers.length; index++) {
             const container = eventContainers[index];
-            const eventData = await this.extractSingleEventData(container, index);
+
+            // Step 1: Click "more" button to expand full text if exists
+            const moreButton = container.querySelector(SelectorConstants.TRUNCATED_TEXT_MORE_BUTTON);
+            if (moreButton) {
+                console.log(`📝 Clicking "more" button for event ${index + 1}`);
+                moreButton.click();
+                // Wait for text to expand
+                await this.delay(300);
+            }
+
+            // Step 2: Extract all data now that text is expanded
+            const eventData = this.extractSingleEventDataSync(container, index);
             events.push(eventData);
         }
 
@@ -43,6 +54,80 @@ export class DataExtractor {
         return containers.filter(container =>
             container.offsetWidth > 0 && container.offsetHeight > 0
         );
+    }
+
+    /**
+     * Expand all truncated text across all event containers
+     * @param {Array<Element>} eventContainers - Array of event container elements
+     */
+    async expandAllEventTexts(eventContainers) {
+        console.log('📝 Expanding all truncated text across all events...');
+
+        // Click all "more" buttons at once
+        const clickPromises = eventContainers.map(async (container, index) => {
+            const moreButton = container.querySelector(SelectorConstants.TRUNCATED_TEXT_MORE_BUTTON);
+            if (moreButton && moreButton.offsetWidth > 0 && moreButton.offsetHeight > 0) {
+                console.log(`📝 Clicking "more" button for event ${index + 1}`);
+                moreButton.click();
+                return true;
+            }
+            return false;
+        });
+
+        // Wait for all clicks to complete
+        const clickResults = await Promise.all(clickPromises);
+        const clickedCount = clickResults.filter(result => result).length;
+
+        if (clickedCount > 0) {
+            console.log(`📝 Clicked ${clickedCount} "more" buttons, waiting for expansion...`);
+
+            // Wait for all expansions to complete
+            await this.delay(WorkflowConfig.DELAYS.TEXT_EXPANSION);
+
+            // Additional wait to ensure all text is loaded
+            await this.delay(500);
+
+            console.log('📝 All text expansions should now be complete');
+        } else {
+            console.log('📝 No "more" buttons found to click');
+        }
+    }
+
+    /**
+     * Extract data from a single event container (synchronous, after expansion)
+     * @param {Element} container - The event container element
+     * @param {number} index - The index of this container
+     * @returns {Object} Extracted event data
+     */
+    extractSingleEventDataSync(container, index) {
+        // Extract basic information (text should already be expanded)
+        const label = this.extractEventLabel(container);
+        const platforms = this.extractPlatforms(container, label);
+        const timestamp = this.extractTimestamp(container);
+        const description = this.extractDescription(container);
+
+        // Extract media information
+        const imageData = this.extractImageData(container);
+        const videoData = this.extractVideoData(container);
+
+        // Extract additional metadata
+        const url = this.extractEventUrl(container);
+        const metadata = this.extractMetadata(container, index);
+
+        return {
+            label,
+            platforms,
+            timestamp,
+            description,
+            imageSrc: imageData.src,
+            videoSrc: videoData.src,
+            hasVideo: videoData.hasVideo,
+            videoDuration: videoData.duration,
+            isNew: metadata.isNew,
+            cardIndex: metadata.cardIndex,
+            eventUrl: url,
+            cardClasses: metadata.cardClasses
+        };
     }
 
     /**
@@ -91,9 +176,24 @@ export class DataExtractor {
      */
     async expandEventText(container) {
         const moreButton = container.querySelector(SelectorConstants.TRUNCATED_TEXT_MORE_BUTTON);
-        if (moreButton) {
+        if (moreButton && moreButton.offsetWidth > 0 && moreButton.offsetHeight > 0) {
             moreButton.click();
+
+            // Wait for expansion and check if it actually expanded
             await this.delay(WorkflowConfig.DELAYS.TEXT_EXPANSION);
+
+            // Sometimes the expansion is asynchronous, wait a bit more
+            let attempts = 0;
+            const maxAttempts = 5;
+            while (attempts < maxAttempts) {
+                const stillTruncated = container.querySelector(SelectorConstants.TRUNCATED_TEXT_MORE_BUTTON);
+                if (!stillTruncated || stillTruncated.offsetWidth === 0 || stillTruncated.offsetHeight === 0) {
+                    // Text appears to be expanded
+                    break;
+                }
+                await this.delay(100);
+                attempts++;
+            }
         }
     }
 
@@ -146,8 +246,57 @@ export class DataExtractor {
      * @returns {string} Description text or empty string
      */
     extractDescription(container) {
+        // First try the truncated text element (after expansion)
         const descDiv = container.querySelector(SelectorConstants.TRUNCATED_TEXT);
-        return descDiv?.textContent?.trim() || '';
+        if (descDiv?.textContent?.trim()) {
+            const text = descDiv.textContent.trim();
+            console.log('📝 Truncated text element found:', text.substring(0, 100) + (text.length > 100 ? '...' : ''));
+            // If the text doesn't end with "..." it might be fully expanded
+            if (!text.endsWith('...')) {
+                console.log('📝 Using expanded text from truncated element');
+                return text;
+            }
+        }
+
+        // Fallback: try to find the longest text content in the event container
+        // Look for text spans and other elements that might contain the full content
+        const allTextElements = container.querySelectorAll(`${SelectorConstants.TEXT_ROOT}, p, div, span`);
+        let longestText = '';
+        let longestLength = 0;
+
+        for (const element of allTextElements) {
+            const text = element.textContent?.trim();
+            if (text && text.length > longestLength) {
+                // Skip very short texts (likely labels or timestamps) and platform names
+                if (text.length > 10 && !text.includes('@') && !/^\d{1,2}:\d{2}/.test(text) && !text.match(/^\d+\s+(min|hour|day)/)) {
+                    longestText = text;
+                    longestLength = text.length;
+                }
+            }
+        }
+
+        // If we found a long text, use it
+        if (longestText.length > 20) {
+            console.log('📝 Using longest text from container elements:', longestText.substring(0, 100) + (longestText.length > 100 ? '...' : ''));
+            return longestText;
+        }
+
+        // Last resort: get all text content from the container
+        const allText = container.textContent || '';
+        const lines = allText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        console.log('📝 All text lines in container:', lines);
+
+        // Find the longest line that looks like content
+        for (const line of lines) {
+            if (line.length > 20 && !line.includes('@') && !/^\d{1,2}:\d{2}/.test(line) && !line.match(/^\d+\s+(min|hour|day)/)) {
+                console.log('📝 Using longest line from all text:', line.substring(0, 100) + (line.length > 100 ? '...' : ''));
+                return line;
+            }
+        }
+
+        console.log('📝 No suitable description text found');
+        return '';
     }
 
     /**

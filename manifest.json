@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AgencySMM For Blaze",
-  "version": "1.0",
+  "version": "3.0",
   "description": "a AgencySMM.com demo product",
   "permissions": [
     "activeTab",

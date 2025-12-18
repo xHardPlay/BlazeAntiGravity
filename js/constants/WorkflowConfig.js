@@ -5,7 +5,7 @@
 export const WorkflowConfig = {
     // Timing delays (in milliseconds)
     DELAYS: {
-        TEXT_EXPANSION: 300,
+        TEXT_EXPANSION: 800,
         CHECKBOX_CLICK: 150,
         SCROLL_AND_CLICK: 300,
         CLICK_STRATEGY_DELAY: 100,

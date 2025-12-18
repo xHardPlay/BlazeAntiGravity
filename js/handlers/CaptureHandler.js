@@ -118,7 +118,7 @@ export class CaptureHandler {
                         }();
                     }
 
-                    extractEventsPreview() {
+                    async extractEventsPreview() {
                         const containers = Array.from(document.querySelectorAll('[class*="CalendarEventCard_eventContainer"]'))
                             .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
 
@@ -131,7 +131,8 @@ export class CaptureHandler {
                             const moreButton = container.querySelector('[class*="TruncatedText_moreButton"]');
                             if (moreButton) {
                                 moreButton.click();
-                                // Brief delay for expansion
+                                // Wait for text to expand
+                                await new Promise(resolve => setTimeout(resolve, 300));
                             }
 
                             // Extract data
