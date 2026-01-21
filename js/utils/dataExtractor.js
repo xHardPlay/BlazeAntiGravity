@@ -236,8 +236,28 @@ export class DataExtractor {
         const eventHeader = container.querySelector(SelectorConstants.EVENT_HEADER);
         const timeSpans = eventHeader?.querySelectorAll(SelectorConstants.TEXT_ROOT);
 
-        return timeSpans && timeSpans.length > 1 ?
-               timeSpans[1]?.textContent?.trim() || '' : '';
+        // Search for text that looks like a time (e.g., "10:30 AM", "2:00 PM")
+        const timePattern = /^\d{1,2}:\d{2}\s*(AM|PM)$/i;
+
+        if (timeSpans) {
+            for (const span of timeSpans) {
+                const text = span?.textContent?.trim();
+                if (text && timePattern.test(text)) {
+                    return text;
+                }
+            }
+        }
+
+        // Fallback: check all text content in header for time pattern
+        if (eventHeader) {
+            const headerText = eventHeader.textContent || '';
+            const timeMatch = headerText.match(/(\d{1,2}:\d{2}\s*(AM|PM))/i);
+            if (timeMatch) {
+                return timeMatch[1];
+            }
+        }
+
+        return '';
     }
 
     /**

@@ -35,20 +35,28 @@ export class ExportHandler {
      */
     async handleDownloadCSVOnly() {
         try {
-            const csvContent = this.generateCSVData(this.controller.events, this.controller.capturedVideos || []);
-            const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-            const csvDataUrl = await this.blobToDataURL(csvBlob);
-
+            const events = this.controller.events;
             const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-            const filename = `BlazeEvents_${timestamp}.csv`;
 
-            chrome.downloads.download({
-                url: csvDataUrl,
-                filename: filename,
-                saveAs: true
-            });
+            // Group events by platform
+            const platformGroups = this.groupEventsByPlatform(events);
+            const platforms = Object.keys(platformGroups);
 
-            this.controller.renderer.showMessage('CSV file downloaded successfully!', 'success');
+            if (platforms.length === 0) {
+                this.controller.renderer.showMessage('No events to export', 'info');
+                return;
+            }
+
+            // Download a CSV for each platform
+            for (const platform of platforms) {
+                const platformEvents = platformGroups[platform];
+                await this.downloadPlatformCSV(platform, platformEvents, timestamp);
+            }
+
+            this.controller.renderer.showMessage(
+                `${platforms.length} CSV file(s) downloaded: ${platforms.join(', ')}`,
+                'success'
+            );
         } catch (error) {
             console.error('CSV only download failed:', error);
             this.controller.renderer.showMessage(
@@ -64,20 +72,28 @@ export class ExportHandler {
      */
     async handleDownloadAllBlazeCSV() {
         try {
-            const csvContent = this.generateCSVData(this.controller.events, this.controller.capturedVideos || []);
-            const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-            const csvDataUrl = await this.blobToDataURL(csvBlob);
-
+            const events = this.controller.events;
             const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-            const filename = `BlazeData_${timestamp}.csv`;
 
-            chrome.downloads.download({
-                url: csvDataUrl,
-                filename: filename,
-                saveAs: true
-            });
+            // Group events by platform
+            const platformGroups = this.groupEventsByPlatform(events);
+            const platforms = Object.keys(platformGroups);
 
-            this.controller.renderer.showMessage('CSV data downloaded for Blaze!', 'success');
+            if (platforms.length === 0) {
+                this.controller.renderer.showMessage('No events to export', 'info');
+                return;
+            }
+
+            // Download a CSV for each platform
+            for (const platform of platforms) {
+                const platformEvents = platformGroups[platform];
+                await this.downloadPlatformCSV(platform, platformEvents, timestamp);
+            }
+
+            this.controller.renderer.showMessage(
+                `${platforms.length} CSV file(s) downloaded: ${platforms.join(', ')}`,
+                'success'
+            );
         } catch (error) {
             console.error('Blaze CSV download failed:', error);
             this.controller.renderer.showMessage(
@@ -98,6 +114,64 @@ export class ExportHandler {
             reader.onload = () => resolve(reader.result);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
+        });
+    }
+
+    /**
+     * Group events by platform
+     * Events with multiple platforms will appear in each platform's group
+     * @param {Array} events - Array of event objects
+     * @returns {Object} Object with platform names as keys and arrays of events as values
+     */
+    groupEventsByPlatform(events) {
+        const platformGroups = {};
+
+        events.forEach(event => {
+            const platforms = event.platforms || [];
+
+            // If no platforms detected, group under "Unknown"
+            if (platforms.length === 0) {
+                if (!platformGroups['Unknown']) {
+                    platformGroups['Unknown'] = [];
+                }
+                platformGroups['Unknown'].push(event);
+            } else {
+                // Add event to each platform it belongs to
+                platforms.forEach(platform => {
+                    if (!platformGroups[platform]) {
+                        platformGroups[platform] = [];
+                    }
+                    platformGroups[platform].push(event);
+                });
+            }
+        });
+
+        return platformGroups;
+    }
+
+    /**
+     * Download a single CSV file for a specific platform
+     * @param {string} platform - Platform name
+     * @param {Array} events - Events for this platform
+     * @param {string} timestamp - Timestamp string for filename
+     * @returns {Promise<void>}
+     */
+    async downloadPlatformCSV(platform, events, timestamp) {
+        const csvContent = this.generateCSVData(events, []);
+        const csvBlob = new Blob([csvContent], { type: 'text/csv' });
+        const csvDataUrl = await this.blobToDataURL(csvBlob);
+
+        const safePlatformName = platform.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `Blaze_${safePlatformName}_${timestamp}.csv`;
+
+        return new Promise((resolve) => {
+            chrome.downloads.download({
+                url: csvDataUrl,
+                filename: filename,
+                saveAs: false // Don't prompt for each file
+            }, () => {
+                resolve();
+            });
         });
     }
 
@@ -254,21 +328,14 @@ export class ExportHandler {
     generateEventCSVRow(event, index) {
         // New format: postAtSpecificTime, content, link, imageUrls, gifUrl, videoUrls
 
-        // Use current timestamp for postAtSpecificTime (not from card)
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        const postAtSpecificTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        // Use both date and timestamp from the event card
+        let postAtSpecificTime = this.formatTimestampForCSV(event.timestamp, event.date);
 
         // Use only description for content (full content, not label fallback)
         const content = event.description || '';
 
         const row = [
-            postAtSpecificTime, // postAtSpecificTime (current timestamp)
+            postAtSpecificTime, // postAtSpecificTime (from event card)
             `"${this.escapeCsvField(content)}"`, // content
             '', // link (empty)
             `"${event.imageSrc || ''}"`, // imageUrls
@@ -277,6 +344,103 @@ export class ExportHandler {
         ];
 
         return row.join(',');
+    }
+
+    /**
+     * Parse date string from calendar header (e.g., "Nov 2 Sun", "Nov 3 Mon")
+     * @param {string} dateStr - Date string from calendar
+     * @returns {Object} Object with year, month, day or null if parsing fails
+     */
+    parseDateFromCalendar(dateStr) {
+        if (!dateStr) return null;
+
+        // Match patterns like "Nov 2 Sun", "Nov 3 Mon", "November 2", etc.
+        const monthNames = {
+            'jan': '01', 'january': '01',
+            'feb': '02', 'february': '02',
+            'mar': '03', 'march': '03',
+            'apr': '04', 'april': '04',
+            'may': '05',
+            'jun': '06', 'june': '06',
+            'jul': '07', 'july': '07',
+            'aug': '08', 'august': '08',
+            'sep': '09', 'september': '09',
+            'oct': '10', 'october': '10',
+            'nov': '11', 'november': '11',
+            'dec': '12', 'december': '12'
+        };
+
+        const match = dateStr.match(/([a-zA-Z]+)\s+(\d{1,2})/i);
+        if (match) {
+            const monthKey = match[1].toLowerCase().substring(0, 3);
+            const month = monthNames[monthKey];
+            const day = String(parseInt(match[2])).padStart(2, '0');
+
+            if (month) {
+                // Use current year (or next year if the date appears to be in the past)
+                const now = new Date();
+                const year = now.getFullYear();
+                return { year, month, day };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Format timestamp from event card to CSV format
+     * Converts timestamps like "10:30 AM" to "YYYY-MM-DD HH:mm:ss" using extracted date
+     * @param {string} timestamp - Original timestamp string from event (e.g., "10:30 AM")
+     * @param {string} dateStr - Date string from calendar header (e.g., "Nov 2 Sun")
+     * @returns {string} Formatted timestamp
+     */
+    formatTimestampForCSV(timestamp, dateStr) {
+        // Parse the date from calendar or use current date as fallback
+        const parsedDate = this.parseDateFromCalendar(dateStr);
+        const now = new Date();
+
+        const year = parsedDate?.year || now.getFullYear();
+        const month = parsedDate?.month || String(now.getMonth() + 1).padStart(2, '0');
+        const day = parsedDate?.day || String(now.getDate()).padStart(2, '0');
+
+        if (!timestamp) {
+            // Fallback to current time if no timestamp
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        try {
+            // Parse the time part (e.g., "10:30 AM" -> hours and minutes)
+            const timeMatch = timestamp.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+            if (!timeMatch) {
+                // If no AM/PM format, try 24-hour format or just use the timestamp as-is
+                return `${year}-${month}-${day} ${timestamp}`;
+            }
+
+            let hours = parseInt(timeMatch[1]);
+            const minutes = timeMatch[2];
+            const ampm = timeMatch[3].toUpperCase();
+
+            // Convert to 24-hour format
+            if (ampm === 'PM' && hours !== 12) {
+                hours += 12;
+            } else if (ampm === 'AM' && hours === 12) {
+                hours = 0;
+            }
+
+            const hours24 = String(hours).padStart(2, '0');
+
+            return `${year}-${month}-${day} ${hours24}:${minutes}:00`;
+        } catch (error) {
+            console.error('Error formatting timestamp for CSV:', error);
+            // Fallback to current time
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
     }
 
     /**

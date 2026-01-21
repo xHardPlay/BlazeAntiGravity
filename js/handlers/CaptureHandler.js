@@ -93,19 +93,61 @@ export class CaptureHandler {
                 // Create data extractor instance in page context
                 class PageDataExtractor {
                     constructor() {
+                        this.columnDates = {};
                         this.platformDetector = new class PlatformDetector {
                             detectPlatforms(container) {
                                 const platforms = [];
-                                const icons = container.querySelectorAll('[class*="Icon_platform"]');
-                                icons.forEach(icon => {
-                                    const classes = icon.className;
-                                    if (classes.includes('Icon_facebook__d7da4')) platforms.push('Facebook');
-                                    if (classes.includes('Icon_instagram__d7da4')) platforms.push('Instagram');
-                                    if (classes.includes('Icon_youtube__d7da4')) platforms.push('YouTube');
-                                    if (classes.includes('Icon_x__d7da4') || classes.includes('Icon_twitter__d7da4')) platforms.push('X');
-                                    if (classes.includes('Icon_linkedin__d7da4')) platforms.push('LinkedIn');
+
+                                // Check ALL elements with platform-related classes
+                                const allElements = container.querySelectorAll('*');
+                                allElements.forEach(el => {
+                                    const classes = el.className || '';
+                                    if (typeof classes === 'string') {
+                                        // Icon_platform classes
+                                        if (classes.includes('Icon_facebook') || classes.includes('ChannelIcon_facebook')) {
+                                            platforms.push('Facebook');
+                                        }
+                                        if (classes.includes('Icon_instagram') || classes.includes('ChannelIcon_instagram')) {
+                                            platforms.push('Instagram');
+                                        }
+                                        if (classes.includes('Icon_youtube') || classes.includes('ChannelIcon_youtube')) {
+                                            platforms.push('YouTube');
+                                        }
+                                        if (classes.includes('Icon_x__') || classes.includes('Icon_twitter') ||
+                                            classes.includes('ChannelIcon_x__') || classes.includes('ChannelIcon_twitter')) {
+                                            platforms.push('X');
+                                        }
+                                        if (classes.includes('Icon_linkedin') || classes.includes('ChannelIcon_linkedIn')) {
+                                            platforms.push('LinkedIn');
+                                        }
+                                    }
                                 });
-                                return [...new Set(platforms)];
+
+                                // Check for Instagram by SVG gradient pattern (Instagram uses radial gradient with specific colors)
+                                const svgs = container.querySelectorAll('svg');
+                                for (const svg of svgs) {
+                                    const svgHTML = svg.outerHTML || '';
+                                    // Instagram gradient has these specific colors
+                                    if (svgHTML.includes('#FFC800') && svgHTML.includes('#F51780') && svgHTML.includes('#8C3AAA')) {
+                                        platforms.push('Instagram');
+                                    }
+                                    // YouTube red color and path
+                                    if (svgHTML.includes('M23.498 6.186') || (svgHTML.includes('#FF0000') && svgHTML.includes('youtube'))) {
+                                        platforms.push('YouTube');
+                                    }
+                                    // Facebook blue
+                                    if (svgHTML.includes('#1877F2')) {
+                                        platforms.push('Facebook');
+                                    }
+                                    // LinkedIn blue
+                                    if (svgHTML.includes('#1275B1') || svgHTML.includes('#0A66C2')) {
+                                        platforms.push('LinkedIn');
+                                    }
+                                }
+
+                                const uniquePlatforms = [...new Set(platforms)];
+                                console.log(`🔍 Detected platforms:`, uniquePlatforms);
+                                return uniquePlatforms;
                             }
 
                             inferPlatformFromLabel(label) {
@@ -113,32 +155,65 @@ export class CaptureHandler {
                                 if (lower.includes('email') || lower.includes('mail')) return ['Email'];
                                 if (lower.includes('blog')) return ['Blog'];
                                 if (lower.includes('story')) return ['Instagram'];
+                                if (lower.includes('reel')) return ['Instagram'];
+                                if (lower.includes('post')) return []; // Generic, need icon detection
                                 return [];
                             }
                         }();
                     }
 
                     async extractEventsPreview() {
-                        const containers = Array.from(document.querySelectorAll('[class*="CalendarEventCard_eventContainer"]'))
-                            .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
+                        // Get date headers and columns - they are siblings in the WeekView
+                        const dateHeaders = Array.from(document.querySelectorAll('[class*="WeekViewV2_weekDayHeaderContainer"]'))
+                            .map(h => h.textContent?.trim() || '');
+                        const dayColumns = Array.from(document.querySelectorAll('[class*="WeekViewV2_weekDayColumn"]'));
 
-                        const events = [];
+                        console.log(`📅 Found ${dateHeaders.length} date headers:`, dateHeaders);
+                        console.log(`📅 Found ${dayColumns.length} day columns`);
 
-                        for (let index = 0; index < containers.length; index++) {
-                            const container = containers[index];
+                        // Build a map of column index -> date
+                        this.columnDates = {};
+                        dayColumns.forEach((col, idx) => {
+                            this.columnDates[idx] = dateHeaders[idx] || '';
+                        });
 
-                            // Expand text
+                        // Scroll each column to load all cards
+                        for (const column of dayColumns) {
+                            column.scrollTop = column.scrollHeight;
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                            column.scrollTop = 0;
+                        }
+
+                        // Get ALL event containers
+                        const containers = Array.from(document.querySelectorAll('[class*="CalendarEventCard_eventContainer"]'));
+
+                        console.log(`📊 Found ${containers.length} event containers in DOM`);
+
+                        // Click all "more" buttons at once
+                        let moreButtonCount = 0;
+                        containers.forEach(container => {
                             const moreButton = container.querySelector('[class*="TruncatedText_moreButton"]');
                             if (moreButton) {
                                 moreButton.click();
-                                // Wait for text to expand
-                                await new Promise(resolve => setTimeout(resolve, 300));
+                                moreButtonCount++;
                             }
+                        });
 
-                            // Extract data
+                        // Wait for text expansions if any buttons were clicked
+                        if (moreButtonCount > 0) {
+                            console.log(`📝 Clicked ${moreButtonCount} "more" buttons`);
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+
+                        // Now extract data from all containers
+                        const events = [];
+                        for (let index = 0; index < containers.length; index++) {
+                            const container = containers[index];
+
                             const label = this.extractLabel(container);
                             const platforms = this.extractPlatforms(container, label);
                             const timestamp = this.extractTimestamp(container);
+                            const date = this.extractDate(container);
                             const description = this.extractDescription(container);
                             const imageData = this.extractImage(container);
                             const videoData = this.extractVideo(container);
@@ -149,6 +224,7 @@ export class CaptureHandler {
                                 label,
                                 platforms,
                                 timestamp,
+                                date,
                                 description,
                                 imageSrc: imageData.src,
                                 videoSrc: videoData.src,
@@ -161,6 +237,7 @@ export class CaptureHandler {
                             });
                         }
 
+                        console.log(`✅ Extracted ${events.length} events`);
                         return events;
                     }
 
@@ -182,17 +259,79 @@ export class CaptureHandler {
                     extractTimestamp(container) {
                         const header = container.querySelector('[class*="CalendarEventCard_eventHeader"]');
                         const spans = header?.querySelectorAll('span[class*="Text_root_"]');
-                        return spans && spans.length > 1 ? spans[1]?.textContent?.trim() || '' : '';
+
+                        // Search for text that looks like a time (e.g., "10:30 AM", "2:00 PM", "5:00pm")
+                        // Support both "AM/PM" and "am/pm" with optional space
+                        const timePattern = /^\d{1,2}:\d{2}\s*(am|pm)$/i;
+
+                        if (spans) {
+                            for (const span of spans) {
+                                const text = span?.textContent?.trim();
+                                if (text && timePattern.test(text)) {
+                                    return text;
+                                }
+                            }
+                        }
+
+                        // Fallback: check all text content in header for time pattern
+                        if (header) {
+                            const headerText = header.textContent || '';
+                            const timeMatch = headerText.match(/(\d{1,2}:\d{2}\s*(am|pm))/i);
+                            if (timeMatch) {
+                                return timeMatch[1];
+                            }
+                        }
+
+                        return '';
                     }
 
                     extractDescription(container) {
-                        const desc = container.querySelector('[class*="TruncatedText_caption"]');
-                        return desc?.textContent?.trim() || '';
+                        // Try multiple selectors for content
+                        const selectors = [
+                            '[class*="TruncatedText_caption"]',
+                            '[class*="TruncatedText_text"]',
+                            '[class*="CalendarEventCard_content"]',
+                            '[class*="CalendarEventCard_description"]',
+                            '[class*="CalendarEventCard_captionContainer"]'
+                        ];
+
+                        for (const selector of selectors) {
+                            const el = container.querySelector(selector);
+                            const text = el?.textContent?.trim();
+                            if (text && text.length > 10) {
+                                // Remove "more" suffix if present
+                                const cleanText = text.replace(/\s*more\s*$/i, '').trim();
+                                if (cleanText.length > 10) {
+                                    return cleanText;
+                                }
+                            }
+                        }
+
+                        // Fallback: look for any substantial text block in the container
+                        const allText = container.querySelectorAll('span, p, div');
+                        let longestText = '';
+                        for (const el of allText) {
+                            const text = el.textContent?.trim() || '';
+                            // Skip short text (labels, timestamps) and filter out common non-content
+                            if (text.length > longestText.length &&
+                                text.length > 15 &&
+                                !text.match(/^\d{1,2}:\d{2}/) &&
+                                !text.match(/^(Post|Draft|Posted|Email|Story|Reel|more)$/i)) {
+                                // Remove "more" suffix
+                                longestText = text.replace(/\s*more\s*$/i, '').trim();
+                            }
+                        }
+
+                        return longestText;
                     }
 
                     extractImage(container) {
-                        const img = container.querySelector('img');
-                        const src = img && !img.src.startsWith('data:') && img.offsetWidth > 0 ? img.src : null;
+                        // Find image with actual src (not data: URLs)
+                        const img = container.querySelector('img[src]');
+                        let src = null;
+                        if (img && img.src && !img.src.startsWith('data:')) {
+                            src = img.src;
+                        }
                         return { src };
                     }
 
@@ -241,6 +380,27 @@ export class CaptureHandler {
                             isNew,
                             cardClasses: classes
                         };
+                    }
+
+                    extractDate(container) {
+                        // Find which column this container is in
+                        const dayColumn = container.closest('[class*="WeekViewV2_weekDayColumn"]');
+                        if (dayColumn && this.columnDates) {
+                            const allColumns = Array.from(document.querySelectorAll('[class*="WeekViewV2_weekDayColumn"]'));
+                            const columnIndex = allColumns.indexOf(dayColumn);
+                            if (columnIndex >= 0 && this.columnDates[columnIndex]) {
+                                return this.columnDates[columnIndex];
+                            }
+                        }
+
+                        // Fallback: try to find date header directly
+                        const dateHeaders = document.querySelectorAll('[class*="WeekViewV2_weekDayHeaderContainer"]');
+                        if (dateHeaders.length > 0) {
+                            // Return first date as fallback
+                            return dateHeaders[0]?.textContent?.trim() || '';
+                        }
+
+                        return '';
                     }
                 }
 
